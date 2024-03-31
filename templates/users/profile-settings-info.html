@@ -1,0 +1,62 @@
+{% extends 'users/profile-settings.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+{% block settings_content %}
+    <div class="profile-settings-content">
+        <div class="user-handler">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="user-box">
+                    <label>Gender</label>
+                    {{ form.gender }}
+                </div>
+
+                <div class="user-box">
+                    <label>Date of birth</label>
+                    {{ form.date_of_birth|input_value:request.user.date_of_birth|type_value:'date' }}
+                    {% if form.date_of_birth.errors %}
+                        <div class="form-errors">
+                            {{ form.date_of_birth.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="user-box">
+                    <label>Phone Number</label>
+                    {{ form.phone_number|input_value:request.user.phone_number }}
+                    {% if form.phone_number.errors %}
+                        <div class="form-errors">
+                            {{ form.phone_number.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="user-box">
+                    <label>City</label>
+                    {{ form.city|input_value:request.user.city }}
+                    {% if form.city.errors %}
+                        <div class="form-errors">
+                            {{ form.city.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="user-box">
+                    <label>Country</label>
+                    {{ form.country|input_value:request.user.country }}
+                    {% if form.country.errors %}
+                        <div class="form-errors">
+                            {{ form.country.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+
+                <button type="submit" class="primary-btn">Save</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

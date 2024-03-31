@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+
+    <main>
+        <div class="sections-wrapper">
+            <section class="left">
+
+                <div class="user-info-wrapper">
+                    <!-- AVATAR -->
+                    <div class="avatar-wrapper">
+                        <a href="#" class="circle">
+                            <img height="120px" width="120px"
+                                 src="{{ user.profile_picture.url }}"
+                                 alt="Cloud Chen">
+                        </a>
+                    </div>
+
+                    <!-- Username -->
+                    <div class="username-wrapper">
+                        <p>{{ user.username }}</p>
+                    </div>
+                </div>
+
+                <div class="user-navigation-wrapper">
+                    <ul class="user-ul">
+                        <li><a href="{% url 'show_friends' %}">Friends</a></li>
+                        <li><a href="#">Messages</a></li>
+                        <li><a href="{% url 'public_chat_room' %}">Rooms</a></li>
+                        <li><a href="{% url 'profile-settings' request.user.pk %}">Profile settings</a></li>
+                        <li><a href="">Privacy settings</a></li>
+                        <li><a href="{% url 'logout' %}" id="logout">Logout</a></li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="right">
+                {% block right_content %}
+            
+
+
+                {% endblock %}
+            </section>
+        </div>
+    </main>
+
+{% endblock %}

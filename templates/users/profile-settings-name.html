@@ -1,0 +1,36 @@
+{% extends 'users/profile-settings.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+{% block settings_content %}
+    <div class="profile-settings-content">
+        <div class="user-handler">
+            <form method="post">
+                {% csrf_token %}
+                <!-- Render 'first_name' field individually -->
+                <div class="user-box">
+                    <label>First Name</label>
+                    {{ form.first_name|input_value:request.user.first_name }}
+                    {% if form.first_name.errors %}
+                        <div class="form-errors">
+                            {{ form.first_name.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="user-box">
+                    <label>Last Name</label>
+                    {{ form.last_name|input_value:request.user.last_name }}
+                    {% if form.last_name.errors %}
+                        <div class="form-errors">
+                            {{ form.last_name.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="primary-btn">Save</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

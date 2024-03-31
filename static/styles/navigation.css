@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300&display=swap');
+
+:root {
+    --primary-color: #002F67;
+    --secondary-color: #0F82FF;
+    --text-color: #FFFFFF;
+    --background-color: #0B1422;
+    --sections-color: #121f32;
+    /*--my-border-color:rgba(200, 200, 200, 0.4);*/
+    --my-border-color:#0B1422;
+}
+
+html {
+    scroll-behavior: smooth;
+    box-sizing: border-box;
+    font-family: 'Montserrat', sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+
+}
+
+header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    background-color: var(--sections-color);
+    align-items: center;
+}
+
+.logo > a:nth-child(1){
+    display: flex;
+    flex-direction: row;
+    text-decoration: none;
+}
+
+
+
+.logo{
+    display: flex;
+    flex-direction: row;
+    font-size: 1.2em;
+}
+
+.logo .first-heading {
+    color: var(--text-color);
+}
+
+.logo .second-heading {
+    color: var(--secondary-color);
+}
+
+nav ul li {
+    list-style: none;
+    text-decoration: none;
+}
+
+.main-nav ul {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+    align-items: center;
+}
+
+.main-nav li a {
+    text-decoration: none;
+    color: var(--text-color);
+    font-size: 1.2em;
+}
+
+.main-nav li a:hover{
+    color: var(--secondary-color);
+}
+
+

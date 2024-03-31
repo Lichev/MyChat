@@ -1,0 +1,59 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <link rel="stylesheet" href="{% static 'styles/reset.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    
+    <title>Site</title>
+</head>
+<body>
+<header>
+    <div class="logo">
+        <a href="{% url 'index' %}">
+            <h1 class=" first-heading">My</h1>
+            <h1 class="second-heading">Chat</h1>
+        </a>
+    </div>
+
+    <nav class="main-nav">
+        <ul>
+            <li>
+                <div class="wrap-search">
+                    <form action="{% url 'search-results' %}" method="get">
+                        {% csrf_token %}
+                        <div class="search">
+                            <input type="text" class="searchTerm" name="query" placeholder="What are you looking for?">
+                            <button type="submit" class="searchButton">
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </li>
+
+            {% if not request.user.is_authenticated %}
+                <li><a href="{% url 'login' %}">Login</a></li>
+                <li><a href="{% url 'register' %}">Register</a></li>
+            {% else %}
+                <li><a href="#">Home</a></li>
+                <li><a href="{% url 'profile' request.user.pk %}">Profile</a></li>
+                <li><a href="{% url 'logout' %}" id="logout">Logout</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</header>
+
+{% block content %}
+{% endblock %}
+
+
+</body>
+</html>

@@ -1,0 +1,31 @@
+{% extends 'users/profile-settings.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+{% block settings_content %}
+    <div class="profile-settings-content">
+        <div class="change-avatar-wrapper">
+            <div class="avatar-wrapper">
+                <a href="#" class="circle">
+                    <img height="120px" width="120px"
+                         src="{{ user.profile_picture.url }}"
+                         alt="Cloud Chen">
+                </a>
+            </div>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+                <div class="form-group">
+                    <input type="file", class="primary-btn" name="{{ form.profile_picture.name }}"
+                           id="{{ form.profile_picture.id_for_label }}">
+                    {% if form.profile_picture.errors %}
+                        <span class="text-danger">{{ form.profile_picture.errors.0 }}</span>
+                    {% endif %}
+                </div>
+                <button type="submit" class="primary-btn">Save</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

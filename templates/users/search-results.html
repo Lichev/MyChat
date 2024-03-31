@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+    <main>
+        <div class="search-box">
+            <div class="cards-wrapper">
+                {% for account, info in page_obj %}
+                    <div class="card">
+                        <div class="profile-wrapper center">
+                            <div class="profile-body">
+                                <img src="{{ account.profile_picture.url }}" alt="{{ account.full_name }}"/>
+                                <div class="profile-details">
+                                    <h1 class="profile-name">{{ account.full_name }}</h1>
+                                    <p class="profile-username">@{{ account.username }}</p>
+                                </div>
+                            </div>
+                            <div class="clearfix"></div>
+                            <div class="actions">
+                                {% if not info.is_self and not info.is_friend %}
+                                    {% if info.has_sent_request %}
+                                        <button class="primary">Cancel request</button>
+                                    {% elif info.has_received_request %}
+                                        <button class="primary">Accept friend</button>
+                                    {% else %}
+                                        <button id="sendFriendRequest" class="primary">Add friend</button>
+                                    {% endif %}
+                                {% elif not info.is_self and info.is_friend %}
+                                    <button class="primary">Message</button>
+                                {% else %}
+                                    <button class="primary">This is you</button>
+                                {% endif %}
+                                <button id="view-profile-btn" class="secondary" data-username="{{ account.username }}">
+                                    View profile
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p>No users found.</p>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?query={{ query }}&page=1">First</a>
+                    <span class="current-page">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    <a href="?query={{ query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                {% endif %}
+
+
+
+                {% if page_obj.has_next %}
+                    <a href="?query={{ query }}&page={{ page_obj.next_page_number }}">Next</a>
+                    <span class="current-page">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    <a href="?query={{ query }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+{#    <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>#}
+    <script>
+
+{##}
+{#        function getCookie(name) {#}
+{#            var cookieValue = null;#}
+{#            if (document.cookie && document.cookie != '') {#}
+{#                var cookies = document.cookie.split(';');#}
+{#                for (var i = 0; i < cookies.length; i++) {#}
+{#                    var cookie = cookies[i].trim();#}
+{#                    // Does this cookie string begin with the name we want?#}
+{#                    if (cookie.substring(0, name.length + 1) == (name + '=')) {#}
+{#                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));#}
+{#                        break;#}
+{#                    }#}
+{#                }#}
+{#            }#}
+{#            return cookieValue;#}
+{#        }#}
+
+        document.addEventListener('DOMContentLoaded', function () {
+            let btns = document.querySelectorAll("#view-profile-btn");
+
+            btns.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const username = this.getAttribute('data-username');
+                    window.location.href = '{% url 'public-profile' 'USERNAME' %}'.replace('USERNAME', username);
+                });
+            });
+        });
+
+    </script>
+{% endblock %}

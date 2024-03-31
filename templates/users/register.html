@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+    <main>
+        <div class="user-handler">
+            <form action="{% url 'register' %}" method="post">
+
+
+                <div class="user-box">
+                    <label>Email</label>
+                    {{ form.email|placeholder:'Please enter valid email' }}
+                    {{ form.email.errors }}
+
+                </div>
+
+                <div class="user-box">
+                    <label>Username</label>
+                    {{ form.username|placeholder:'Please enter your username' }}
+                    {{ form.username.errors }}
+                </div>
+                <div class="user-box">
+                    <label>Password</label>
+                    {{ form.password1|placeholder:'Please enter your password' }}
+                    {{ form.password1.errors }}
+                </div>
+
+                <div class="user-box">
+                    <label>Repeat Password</label>
+                    {{ form.password2|placeholder:'Please repeat your password' }}
+                    {{ form.password2.errors }}
+                </div>
+
+                <div class="user-box">
+                    <label>First Name</label>
+                    {{ form.first_name|placeholder:'Please enter your name' }}
+                    {{ form.first_name.errors }}
+                </div>
+
+                <div class="user-box">
+                    <label>Last Name</label>
+                    {{ form.last_name|placeholder:'Please enter your surname' }}
+                    {{ form.last_name.errors }}
+                </div>
+
+
+                <input type="hidden" name="text" value="{{ next }}">
+
+                {% csrf_token %}
+                <button type="submit" class="primary-btn">
+                    Submit
+                </button>
+            </form>
+        </div>
+    </main>
+{% endblock %}

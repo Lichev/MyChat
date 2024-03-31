@@ -1,0 +1,160 @@
+.search-box {
+    background-color: var(--sections-color);
+    margin-top: 2.5vh;
+    width: 60vw;
+    height: 85vh;
+}
+
+.cards-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.cards-wrapper .card {
+    flex: 0 0 calc(50% - 10px);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4vw;
+    justify-content: center;
+    margin-bottom: 62px;
+}
+
+/*.cards-wrapper .card  .circle {*/
+/*    height: 100px;*/
+/*    width: 100px;*/
+/*}*/
+
+/*.cards-wrapper .card .card-info-wrapper{*/
+/*    display: flex;*/
+/*    flex-direction: column;*/
+/*    align-items: center;*/
+/*    gap: 1.2vh;*/
+/*}*/
+
+/*.cards-wrapper .card .card-info-wrapper p {*/
+/*    font-size: 1.6rem;*/
+/*    color: var(--text-color);*/
+/*}*/
+
+.profile-wrapper {
+  max-width: 500px;
+  width: 500px;
+  height: 150px;
+}
+
+
+
+.profile-body {
+background: -moz-linear-gradient(320deg, var(--sections-color) 0%, var(--primary-color) 100%); /* ff3.6+ */
+background: -webkit-gradient(linear, left top, right bottom, color-stop(0%, var(--sections-color)), color-stop(100%, var(--primary-color))); /* safari4+,chrome */
+background: -webkit-linear-gradient(320deg, var(--sections-color) 0%, var(--primary-color) 100%); /* safari5.1+,chrome10+ */
+background: -o-linear-gradient(320deg, var(--sections-color)0%, var(--primary-color) 100%); /* opera 11.10+ */
+background: -ms-linear-gradient(320deg, var(--sections-color) 0%, var(--primary-color) 100%); /* ie10+ */
+background: linear-gradient(130deg, var(--sections-color)0%, var(--primary-color) 100%); /* w3c */
+  height: 150px;
+}
+
+.profile-body img {
+  margin: 15px 25px;
+  border: 3px solid white;
+  border-radius: 100%;
+  vertical-align: top;
+  float:left;
+    object-fit: cover;
+     width: 114px;
+    height: 114px;
+}
+
+.profile-body img:after {
+  clear: both;
+    object-fit: cover;
+}
+
+.profile-details {
+  display: inline;
+  float: left;
+  overflow: hidden;
+  color: white;
+}
+
+.profile-details:after {
+  clear: both;
+}
+
+.profile-details h1 {
+  margin-bottom: 0.1em;
+}
+
+.profile-details .description {
+  margin: 0;
+  padding-bottom: 0.3em;
+}
+
+.profile-details ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.profile-details ul li, .profile-details .item {
+  display: inline;
+}
+
+.clearfix {
+  clear: both;
+  margin:0;
+  padding: 0;
+}
+
+.actions {
+  height: 60px;
+}
+
+.actions:after {
+  clear: both;
+  margin:0;
+  padding: 0;
+}
+
+.actions {
+  text-align: center;
+}
+
+.actions button {
+  background: none;
+  border: none;
+  width: 45%;
+  height: 35px;
+  color: white;
+}
+
+.actions button.primary {
+  background: var(--secondary-color);
+}
+
+.actions button.secondary {
+  background: var(--secondary-color);
+}
+
+.actions button.primary:hover {
+  cursor: pointer;
+}
+
+.actions button.secondary:hover {
+    cursor: pointer;
+}
+
+.pagination {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.pagination a {
+    margin: 0 5px;
+    text-decoration: none;
+}
+
+.pagination .current-page {
+    margin: 0 10px;
+}

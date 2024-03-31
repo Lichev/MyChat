@@ -1,0 +1,70 @@
+main {
+    display: flex;
+    justify-content: center;
+}
+
+
+.user-handler {
+    background-color: var(--sections-color);
+    color: var(--text-color);
+    width: 400px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+}
+
+
+.user-handler form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.user-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-box label {
+    font-weight: bold;
+    letter-spacing: 4px;
+}
+
+.user-box label:hover {
+    color: var(--secondary-color);
+}
+
+::placeholder {
+    color: var(--text-color);
+    text-align: center;
+}
+
+
+.user-handler form input {
+    border: none;
+    background: #363b54;
+    box-shadow: inset 0 2px 2px rgba(0, 0, 0, 0.35), 0 2px 0 rgba(255, 255, 255, 0.15);
+    width: 15rem;
+    margin: 0.2rem 0;
+    padding: 0.3rem 0.3rem;
+    color: var(--text-color);
+}
+
+.user-handler form select {
+    border: none;
+    background: #363b54;
+    box-shadow: inset 0 2px 2px rgba(0, 0, 0, 0.35), 0 2px 0 rgba(255, 255, 255, 0.15);
+    width: 15rem;
+    margin: 0.2rem 0;
+    padding: 0.3rem 0.3rem;
+    color: var(--text-color);
+}

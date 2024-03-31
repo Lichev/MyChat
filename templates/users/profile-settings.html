@@ -1,0 +1,47 @@
+{% extends 'users/profile.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+{% block right_content %}
+    <div class="right-section-wrapper">
+        <div class="section-left">
+            <h2 class="profile-settings-header">Profile Settings</h2>
+
+            <ul class="profile-settings-nav">
+                <li>
+                    <a href="{% url 'profile-settings-name' request.user.pk%}" style="--c: #373B44;--b: 5px;--s:12px" id="nameButton">Name</a>
+                </li>
+                <li>
+                    <a href="{% url 'profile-settings-avatar' request.user.pk%}" style="--c: #373B44;--b: 5px;--s:12px" id="avatarButton">Avatar</a>
+                </li>
+                <li>
+                    <a href="#" style="--c: #373B44;--b: 5px;--s:12px" id="emailButton">Email</a>
+                </li>
+                <li>
+                    <a href="{% url 'profile-settings-info' request.user.pk%}" style="--c: #373B44;--b: 5px;--s:12px" id="personalInfoButton">Personal Info</a>
+                </li>
+                <li>
+                    <a href="#" style="--c: #373B44;--b: 5px;--s:12px" id="interestsButton">Interests</a>
+                </li>
+                <li>
+                    <a href="#" style="--c: #373B44;--b: 5px;--s:12px" id="bioButton">Bio</a>
+                </li>
+            </ul>
+
+
+        </div>
+
+        <div class="section-right">
+            {% block settings_content %}
+
+            {% endblock %}
+        </div>
+
+    <script src="{% static 'js/view-profile.js' %}"></script>
+
+    </div>
+
+{% endblock %}
+
+

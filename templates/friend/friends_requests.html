@@ -1,0 +1,73 @@
+{% extends 'users/profile.html' %}
+
+{% load static %}
+{% load custom_filters %}
+{% block right_content %}
+    <main>
+        <div class="friends-list">
+            <div class="cards-wrapper">
+                {% for request, from_user in page_obj %}
+                    <div class="card">
+                        <div class="profile-wrapper-friends-list center">
+                            <div class="profile-body">
+                                <img src="{{ from_user.profile_picture.url }}" alt="{{ from_user.full_name }}"/>
+                                <div class="profile-details">
+                                    <h1 class="profile-name">{{ from_user.full_name }}</h1>
+                                    <p class="profile-username">@{{ from_user.username }}</p>
+                                </div>
+                            </div>
+                            <div class="clearfix"></div>
+                            <div class="actions friend-requests-actions">
+
+                                <form method="post" action="{% url 'friendship_accept' request.pk %}">
+                                    {% csrf_token %}
+                                    <button id="accept" class="primary accept-friend">Accept</button>
+                                </form>
+
+                                <form method="post" action="{% url 'friendship_reject' request.pk %}">
+                                    {% csrf_token %}
+                                    <button id="view-profile-btn" class="secondary accept-friend">Reject</button>
+                                </form>
+
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p>No requests found.</p>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?query={{ query }}&page=1">First</a>
+                    <span class="current-page">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    <a href="?query={{ query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                {% endif %}
+
+
+
+                {% if page_obj.has_next %}
+                    <a href="?query={{ query }}&page={{ page_obj.next_page_number }}">Next</a>
+                    <span class="current-page">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    <a href="?query={{ query }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+                {% endif %}
+            </div>
+        </div>
+
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                let btns = document.querySelectorAll("#view-profile-btn");
+
+                btns.forEach(function (button) {
+                    button.addEventListener('click', function () {
+                        const username = this.getAttribute('data-username');
+                        window.location.href = '{% url 'public-profile' 'USERNAME' %}'.replace('USERNAME', username);
+                    });
+                });
+            });
+        </script>
+    </main>
+
+{% endblock %}

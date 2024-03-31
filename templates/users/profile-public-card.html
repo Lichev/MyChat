@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+    <main>
+        <div class="search-box">
+            <div class="right-personal-card">
+                <div class="avatar-wrapper">
+                    <a href="#" class="circle">
+                        <img height="120px" width="120px"
+                             src="{{ object.profile_picture.url }}"
+                             alt="Cloud Chen">
+                    </a>
+                </div>
+
+                <div class="user-box-nav">
+                    {% if not is_self and not is_friend %}
+                        {% if has_sent_request %}
+
+                            <form id="user-public-profile-form" method="post"
+                                  action="{% url 'friendship_cancel' request_id %}">
+                                {% csrf_token %}
+                                <button class="mini-box" id="user-public-profile-btn" type="submit">Cancel</button>
+                            </form>
+                        {% elif has_received_request %}
+
+                            <form id="user-public-profile-form" method="post"
+                                  action="{% url 'friendship_accept' request_id %}">
+                                {% csrf_token %}
+                                <button class="mini-box" id="user-public-profile-btn" type="submit">Accept</button>
+                            </form>
+
+                            <form id="user-public-profile-form" method="post"
+                                  action="{% url 'friendship_reject' request_id %}">
+                                {% csrf_token %}
+                                <button class="mini-box" id="user-public-profile-btn" type="submit">Reject</button>
+                            </form>
+
+
+                        {% else %}
+
+                            <form id="user-public-profile-form" method="post"
+                                  action="{% url 'friendship_add_friend' to_username.username %}">
+                                {% csrf_token %}
+                                <button class="mini-box" id="user-public-profile-btn" type="submit">Add as a friend
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% elif not is_self and is_friend %}
+                        <a href="">
+                            <div class="mini-box">
+                                <div class="mini-box-text">Message</div>
+                            </div>
+                        </a>
+                        <form id="user-public-profile-form" method="post"
+                              action="{% url 'remove_friend' to_username.id %}">
+                            {% csrf_token %}
+                            <button class="mini-box" id="user-public-profile-btn" type="submit">Remove</button>
+                        </form>
+                    {% endif %}
+
+                    <a href="">
+                        <div class="mini-box">
+                            <div class="mini-box-text">Friends ({{ friends_len }})</div>
+                        </div>
+                    </a>
+
+                    <a href="">
+                        <div class="mini-box">
+                            <div class="mini-box-text">Groups</div>
+                        </div>
+                    </a>
+                    <a href="">
+                        {% if is_self %}
+                            <div class="mini-box">
+                                <div class="mini-box-text">Settings</div>
+                            </div>
+                        {% else %}
+
+                            <div class="mini-box">
+                                <div class="mini-box-text">Block</div>
+                            </div>
+                        {% endif %}
+                    </a>
+                </div>
+
+                <hr class="separator"/>
+
+                <div class="profile-card">
+                    <h1 class="profile-name">{{ object.full_name }}</h1>
+                    <p class="profile-username">@{{ object.username }}</p>
+                    <hr class="separator"/>
+                    <p class="profile-info"><strong>Email:</strong> {{ object.email }}</p>
+
+                    {% if object.phone_number %}
+                        <p class="profile-info"><strong>Phone:</strong> {{ object.phone_number }}</p>
+                    {% endif %}
+
+                    {% if object.gender %}
+                        <p class="profile-info"><strong>Gender:</strong> {{ object.gender }}</p>
+                    {% endif %}
+
+                    {% if object.date_of_birth %}
+                        <p class="profile-info"><strong>Date of birth:</strong> {{ object.date_of_birth }}</p>
+                    {% endif %}
+
+                    {% if object.city or object.country %}
+                        <p class="profile-info"><strong>Location:</strong> {{ object.city }}, {{ object.country }}
+                        </p>
+                    {% endif %}
+                    <p class="profile-info"><strong>Date joined:</strong> {{ object.date_joined }}</p>
+                    <p class="profile-info"><strong>Last login:</strong> {{ object.last_login }}</p>
+
+
+                    <hr class="separator"/>
+                    {% if object.bio %}
+                        <p class="profile-bio">{{ object.bio }}</p>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </main>
+{% endblock %}

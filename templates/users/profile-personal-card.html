@@ -1,0 +1,73 @@
+{% extends 'users/profile.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+{% block right_content %}
+    <div class="right-personal-card">
+        <div class="avatar-wrapper">
+            <a href="#" class="circle">
+                <img height="120px" width="120px"
+                     src="{{ user.profile_picture.url }}"
+                     alt="Cloud Chen">
+            </a>
+        </div>
+
+        <div class="user-box-nav">
+            <a href="{% url 'show_friends' %}">
+                <div class="mini-box">
+                    <div class="mini-box-text">Friends ({{ friends_len }})</div>
+                </div>
+            </a>
+
+            <a href="{% url 'show_friends_request' %}">
+                <div class="mini-box">
+                    <div class="mini-box-text">Friend Requests (1)</div>
+                </div>
+            </a>
+
+            <a href="">
+                <div class="mini-box">
+                    <div class="mini-box-text">Messages (23)</div>
+                </div>
+            </a>
+        </div>
+
+        <hr class="separator"/>
+
+        <div class="profile-card">
+            <h1 class="profile-name">{{ user.full_name }}</h1>
+            <p class="profile-username">@{{ user.username }}</p>
+            <hr class="separator"/>
+            <p class="profile-info"><strong>Email:</strong> {{ user.email }}</p>
+
+            {% if user.phone_number %}
+                <p class="profile-info"><strong>Phone:</strong> {{ user.phone_number }}</p>
+            {% endif %}
+
+            {% if user.gender %}
+                <p class="profile-info"><strong>Gender:</strong> {{ user.gender }}</p>
+            {% endif %}
+
+            {% if user.date_of_birth %}
+                <p class="profile-info"><strong>Date of birth:</strong> {{ user.date_of_birth }}</p>
+            {% endif %}
+
+            {% if user.city or user.country %}
+                <p class="profile-info"><strong>Location:</strong> {{ user.city }}, {{ user.country }}</p>
+            {% endif %}
+            <p class="profile-info"><strong>Date joined:</strong> {{ user.date_joined }}</p>
+            <p class="profile-info"><strong>Last login:</strong> {{ user.last_login }}</p>
+
+
+            <hr class="separator"/>
+            {% if user.bio %}
+                <p class="profile-bio">{{ user.bio }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+{% endblock %}
+
+
