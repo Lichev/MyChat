@@ -37,4 +37,7 @@ class PublicChatRoomMessages(LoginRequiredMixin, UserPassesTestMixin, views.List
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['public_chat_rooms'] = get_public_chat_rooms()
+        room_id = self.kwargs['room_id']
+        current_room = PublicChatRoom.objects.get(id=room_id)
+        context['current_room'] = current_room
         return context

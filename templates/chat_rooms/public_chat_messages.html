@@ -10,7 +10,7 @@
                  alt="avatar"/>
 
             <div class="chat-about">
-                <div class="chat-with">Group 1</div>
+                <div class="chat-with">{{ current_room.name }}</div>
                 <div class="chat-num-messages">3 people (2 online)</div>
             </div>
             <i class="fa fa-star"></i>
@@ -94,27 +94,24 @@
         </div> <!-- end chat-message -->
 
     </div> <!-- end chat -->
-    <script id="message-template" type="text/x-handlebars-template">
-        <li class="clearfix">
-            <div class="message-data align-right">
-                <span class="message-data-time">{{ time }}, Today</span> &nbsp; &nbsp;
-                <span class="message-data-name">Olia</span> <i class="fa fa-circle me"></i>
-            </div>
-            <div class="message other-message float-right">
-                {{ messageOutput }}
-            </div>
-        </li>
-    </script>
+    {{ current_room.name|json_script:"json-roomname" }}
 
-    <script id="message-response-template" type="text/x-handlebars-template">
-        <li>
-            <div class="message-data">
-                <span class="message-data-name"><i class="fa fa-circle online"></i> Vincent</span>
-                <span class="message-data-time">{{ time }}, Today</span>
-            </div>
-            <div class="message my-message">
-                {{ response }}
-            </div>
-        </li>
+    <script>
+        var roomName = JSON.parse(document.getElementById('json-roomname').textContent);
+        var chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/'
+            + roomName
+            + '/'
+        );
+
+        chatSocket.onmessage = function (e) {
+            console.log('onmessage')
+        }
+
+        chatSocket.onclose = function (e) {
+            console.log('onclose')
+        }
     </script>
 {% endblock %}
