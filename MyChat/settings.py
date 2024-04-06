@@ -8,7 +8,6 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -19,8 +18,6 @@ SECRET_KEY = os.environ.get('SECRET_KEY', True)
 DEBUG = os.environ.get('DEBUG', True)
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1').split(' ')
-
-
 
 # Application definition
 
@@ -39,7 +36,6 @@ INSTALLED_APPS = [
     "CHAT_ROOMS",
 
     'channels',
-
 
 ]
 
@@ -79,9 +75,6 @@ WSGI_APPLICATION = 'MyChat.wsgi.application'
 
 ASGI_APPLICATION = 'MyChat.asgi.application'
 
-
-
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -92,7 +85,6 @@ DATABASES = {
         'PORT': os.environ.get('DB_PORT', None),
     }
 }
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -109,8 +101,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -119,19 +109,16 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'USERS.ChatUser'
 LOGIN_REDIRECT_URL = reverse_lazy('index')
 LOGOUT_REDIRECT_URL = reverse_lazy('index')
-
 
 LOGGING = {
     'version': 1,
@@ -158,6 +145,13 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': "channels.layers.InMemoryChannelLayer"
+    }
 }
 
 # EMAIL CONFIG
