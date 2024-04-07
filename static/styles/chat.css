@@ -219,7 +219,7 @@ a.chat-circle {
 }
 
 .chat .chat-history .other-message {
-    background: var(--primary-color);;
+    background: var(--secondary-color);;
 }
 
 .chat .chat-history .other-message:after {
@@ -300,6 +300,7 @@ a.chat-circle {
     clear: both;
     height: 0;
 }
+
 
 
 

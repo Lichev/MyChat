@@ -35,6 +35,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         await self.save_message(username, room, message)
 
+        message_sender = username
+        current_user = self.scope["user"].username  # Assuming scope["user"] holds the current user
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -42,7 +45,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'message': message,
                 'username': username,
                 'room': room,
-
+                'message_sender': message_sender,
+                'current_user': current_user
             }
         )
 
@@ -50,11 +54,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         message = event['message']
         username = event['username']
         room = event['room']
+        message_sender = event['message_sender']
+        current_user = event['current_user']
 
         await self.send(text_data=json.dumps({
             'message': message,
             'username': username,
             'room': room,
+            'message_sender': message_sender,
+            'current_user': current_user
         }))
 
     @sync_to_async

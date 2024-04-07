@@ -19,18 +19,31 @@
         <div class="chat-history">
             <ul>
                 {% for message in messages %}
-                    <li class="clearfix">
-                        <div class="message-data align-right">
-                            <span class="message-data-time">{{ message.timestamp }}</span> &nbsp; &nbsp;
-                            <span class="message-data-name">{{ message.sender.username }}</span> <i
-                                class="fa fa-circle me"></i>
-
-                        </div>
-                        <div class="message other-message float-right">
-                            {{ message.content }}
-                        </div>
-                    </li>
+                    {% if message.sender == request.user %}
+                        <li class="clearfix">
+                            <div class="message-data align-right">
+                                <span class="message-data-time">{{ message.timestamp }}</span> &nbsp; &nbsp;
+                                <span class="message-data-name">{{ message.sender.username }}</span>  <i
+                                    class="fa fa-circle me"></i>
+                            </div>
+                            <div class="message other-message float-right">
+                                {{ message.content }}
+                            </div>
+                        </li>
+                    {% else %}
+                        <li>
+                            <div class="message-data">
+                                <span class="message-data-name"><i
+                                        class="fa fa-circle online"></i> {{ message.sender.username }}</span>
+                                <span class="message-data-time">{{ message.timestamp }}</span>
+                            </div>
+                            <div class="message my-message">
+                                {{ message.content }}
+                            </div>
+                        </li>
+                    {% endif %}
                 {% endfor %}
+
 
             </ul>
 
