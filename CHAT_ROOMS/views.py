@@ -32,7 +32,7 @@ class PublicChatRoomMessages(LoginRequiredMixin, UserPassesTestMixin, views.List
 
     def get_queryset(self):
         room_id = self.kwargs['room_id']
-        return Message.objects.filter(room_id=room_id)
+        return Message.objects.filter(room_id=room_id)[0:25]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
