@@ -29,7 +29,7 @@ chatSocket.onmessage = function (e) {
             listItem.innerHTML = `
                 <div class="message-data align-right">
                     <span class="message-data-time">${formattedTimestamp}</span>&nbsp;&nbsp;
-                    <span class="message-data-name">${messageSender}</span><i class="fa fa-circle me"></i>
+                    <span class="message-data-name">${messageSender}  </span><i class="fa fa-circle me"></i>
                 </div>
                 <div class="message other-message float-right">${data.message}</div>`;
         } else {
