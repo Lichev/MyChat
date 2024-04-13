@@ -5,7 +5,7 @@ UserModel = get_user_model()
 
 
 def get_room_picture(self, filename):
-    return f'room_images/{self.pk}/{"profile_image.png"}'
+    return f'room_images/rooms_avatars/{"profile_image.png"}'
 
 
 def get_default_room_picture():

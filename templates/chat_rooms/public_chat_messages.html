@@ -7,8 +7,8 @@
     <section class=right-chat>
         <div class="chat">
             <div class="chat-header clearfix">
-                <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01_green.jpg"
-                     alt="avatar"/>
+                <img src="{{ current_room.room_picture.url }}"
+                     alt="avatar" height="65px" width="65px"/>
 
                 <div class="chat-about">
                     <div class="chat-with">{{ current_room.name }}</div>
