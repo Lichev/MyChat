@@ -43,6 +43,10 @@ class PublicChatRoomMessages(LoginRequiredMixin, UserPassesTestMixin, views.List
         room_id = self.kwargs['room_id']
         current_room = PublicChatRoom.objects.get(id=room_id)
         context['current_room'] = current_room
+        current_user = self.request.user
+        is_admin = current_room.is_admin(current_user)
+        context['is_admin'] = is_admin
+
         return context
 
 

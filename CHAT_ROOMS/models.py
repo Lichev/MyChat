@@ -33,6 +33,11 @@ class PublicChatRoom(models.Model):
     def delete_room(self):
         self.delete()
 
+    def is_admin(self, user):
+        """Check if the user is an admin of the room."""
+        return self.admins.filter(pk=user.id).exists() or self.creator == user
+
+
 
 class Message(models.Model):
     room = models.ForeignKey(PublicChatRoom, on_delete=models.CASCADE)

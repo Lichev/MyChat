@@ -14,7 +14,12 @@
                     <div class="chat-with">{{ current_room.name }}</div>
                     <div class="chat-num-messages">3 people (2 online)</div>
                 </div>
-                <i class="fa fa-star"></i>
+                {% if is_admin %}
+                     <i class="fa fa-star"><a href="">  Admin</a></i>
+                    {% else %}
+                    <i class="fa fa-star"><a href="">  User</a></i>
+                {% endif %}
+
             </div> <!-- end chat-header -->
 
             <div class="chat-history">

@@ -339,6 +339,16 @@ html body main div.chat-menu-wrapper section.left-chat div#people-list.people-li
     justify-content: center;
 }
 
-.user-handler-chat{
-       justify-content: center;
+.user-handler-chat {
+    justify-content: center;
+}
+
+
+.fa-star > a:nth-child(1) {
+    text-decoration: none;
+    color: var(--text-color);
+}
+
+.fa-star > a:nth-child(1):hover{
+    color: var(--secondary-color);
 }
