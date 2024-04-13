@@ -37,9 +37,10 @@
                             </div>
                         </form>
                     </div>
+                
                     <ul class="list">
                         <li class="clearfix add-room">
-                            <a href="">
+                            <a href="{% url 'create_room' %}">
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Squared_plus.svg/800px-Squared_plus.svg.png"
                                      alt="avatar"/>
 
@@ -67,15 +68,12 @@
 
             </section>
 
-            <section class=right-chat>
+
 
                 {% block right_chat_content %}
-                    <p>Hello worlds</p>
+                    <section class=right-chat></section>
                 {% endblock %}
-
-            </section>
-
-
+        
         </div>
 
     </main>

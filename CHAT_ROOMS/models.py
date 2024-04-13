@@ -1,14 +1,31 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 
-
 UserModel = get_user_model()
+
+
+def get_room_picture(self, filename):
+    return f'room_images/{self.pk}/{"profile_image.png"}'
+
+
+def get_default_room_picture():
+    return 'default_profile.png'
 
 
 class PublicChatRoom(models.Model):
     name = models.CharField(max_length=100)
     creator = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name='created_rooms')
     admins = models.ManyToManyField(UserModel, related_name='administered_rooms', blank=True)
+    is_private = models.BooleanField(default=False)
+    for_friends_only = models.BooleanField(default=False)
+    members = models.ManyToManyField(UserModel, related_name='group_members', blank=True)
+    room_picture = models.ImageField(
+        max_length=255,
+        upload_to=get_room_picture,
+        null=True,
+        blank=True,
+        default=get_default_room_picture,
+    )
 
     def __str__(self):
         return self.name

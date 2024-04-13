@@ -1,0 +1,59 @@
+{% extends 'chat_rooms/public_chat_rooms.html' %}
+
+{% load static %}
+
+{% block right_chat_content %}
+    <section class='right-chat chat-handler'>
+    <div class="user-handler user-handler-chat">
+        <h2>Create a Chat Room</h2>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="user-box">
+                <label>Group name:</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="form-errors">
+                        {{ form.name.errors }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="user-box">
+                <label>Avatar:</label>
+                {{ form.room_picture }}
+                {% if form.room_picture.errors %}
+                    <div class="form-errors">
+                        {{ form.room_picture.errors }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="user-box">
+                <label>Private group:</label>
+                {{ form.is_private }}
+                {% if form.is_private.errors %}
+                    <div class="form-errors">
+                        {{ form.is_private.errors }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="user-box">
+                <label>For friends only:</label>
+                {{ form.for_friends_only }}
+                {% if form.for_friends_only.errors %}
+                    <div class="form-errors">
+                        {{ form.for_friends_only.errors }}
+                    </div>
+                {% endif %}
+            </div>
+
+
+            <button type="submit" class="primary-btn">Save</button>
+        </form>
+    </div>
+    </section>
+{% endblock %}
+
+
