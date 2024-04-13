@@ -298,5 +298,36 @@ a.chat-circle {
 }
 
 
+html body main div.chat-menu-wrapper section.left-chat div#people-list.people-list ul.list li.clearfix.add-room {
+    border: 1px groove var(--primary-color);
+    border-radius: 10px;
+    padding: 0;
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
 
+}
 
+html body main div.chat-menu-wrapper section.left-chat div#people-list.people-list ul.list li.clearfix.add-room:hover {
+    border-color: var(--secondary-color);
+
+}
+
+html body main div.chat-menu-wrapper section.left-chat div#people-list.people-list ul.list li.clearfix.add-room a {
+    text-decoration: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-color);
+}
+
+html body main div.chat-menu-wrapper section.left-chat div#people-list.people-list ul.list li.clearfix.add-room a:hover {
+    color: var(--secondary-color);
+}
+
+html body main div.chat-menu-wrapper section.left-chat div#people-list.people-list ul.list li.clearfix.add-room a img {
+    width: 65px;
+    height: 65px;
+}
