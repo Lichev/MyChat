@@ -151,8 +151,10 @@ class DetailUserView(LoginRequiredMixin, UserPassesTestMixin, views.DetailView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         friends_len = Friend.objects.friends(user)
+        friend_requests = Friend.objects.requests(user)
 
         context['friends_len'] = len(friends_len)
+        context['requests_len'] = len(friend_requests)
 
         return context
 
