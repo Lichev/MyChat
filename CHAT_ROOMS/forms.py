@@ -8,4 +8,6 @@ UserModel = get_user_model()
 class PublicChatRoomForm(forms.ModelForm):
     class Meta:
         model = PublicChatRoom
-        fields = ('room_picture','name', 'is_private', 'for_friends_only',)
+        fields = ('room_picture', 'name', 'is_private', 'for_friends_only', 'admins', 'members')
+
+

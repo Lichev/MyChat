@@ -15,7 +15,7 @@
                     <div class="chat-num-messages">3 people (2 online)</div>
                 </div>
                 {% if is_admin %}
-                     <i class="fa fa-star"><a href="">  Admin</a></i>
+                     <i class="fa fa-star"><a href="{% url 'edit_room' current_room.id %}">  Admin</a></i>
                     {% else %}
                     <i class="fa fa-star"><a href="">  User</a></i>
                 {% endif %}

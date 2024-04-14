@@ -6,6 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import redirect
 from .models import PublicChatRoom
 from .forms import PublicChatRoomForm
+from django.db.models import Q
 
 
 def get_public_chat_rooms():
@@ -66,4 +67,29 @@ class PublicChatRoomCreateView(LoginRequiredMixin, UserPassesTestMixin, views.Cr
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['public_chat_rooms'] = get_public_chat_rooms()
+        return context
+
+
+class PublicChatRoomEditView(LoginRequiredMixin, UserPassesTestMixin, views.UpdateView):
+    model = PublicChatRoom
+    form_class = PublicChatRoomForm
+    template_name = 'chat_rooms/edit_room.html'
+    pk_url_kwarg = 'room_id'
+    success_url = reverse_lazy('public_chat_room')
+
+    def test_func(self):
+        return self.request.user.is_authenticated
+
+    def get_object(self, queryset=None):
+        room_id = self.kwargs.get(self.pk_url_kwarg)
+        return PublicChatRoom.objects.get(id=room_id)
+
+    def get_queryset(self):
+        return PublicChatRoom.objects.filter(Q(admins=self.request.user) | Q(creator=self.request.user))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['public_chat_rooms'] = get_public_chat_rooms()
+        context['room'] = self.get_object()
+        context['is_admin'] = context['room'].is_admin(self.request.user)
         return context
