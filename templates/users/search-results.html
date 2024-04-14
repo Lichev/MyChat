@@ -21,9 +21,13 @@
                             <div class="actions">
                                 {% if not info.is_self and not info.is_friend %}
                                     {% if info.has_sent_request %}
-                                        <button class="primary">Cancel request</button>
+                                        <button id="cancelFriendRequest" class="primary"
+                                                data-request-id="{{ info.request_id }}">Cancel request
+                                        </button>
                                     {% elif info.has_received_request %}
-                                        <button class="primary">Accept friend</button>
+                                        <button id="acceptFriendRequest" class="primary"
+                                                data-request-id="{{ info.request_id }}">Accept friend
+                                        </button>
                                     {% else %}
                                         <button id="sendFriendRequest"
                                                 class="primary" data-username="{{ account.username }}">Add
@@ -73,6 +77,10 @@
 
             let sendRequestBtns = document.querySelectorAll("#sendFriendRequest");
 
+            let cancelFriendRequest = document.querySelectorAll("#cancelFriendRequest");
+
+            let acceptFriendRequest = document.querySelectorAll("#acceptFriendRequest");
+
             viewProfileBtns.forEach(function (button) {
                 button.addEventListener('click', function (event) {
                     event.preventDefault();
@@ -90,11 +98,57 @@
                     fetch(url, {
                         method: 'POST',
                         headers: {
-                            'X-CSRFToken': '{{ csrf_token }}' // Include CSRF token
+                            'X-CSRFToken': '{{ csrf_token }}'
                         }
                     })
                         .then(response => {
-                            window.location.reload(); 
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                });
+            });
+
+            cancelFriendRequest.forEach(function (button) {
+                button.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const requestID = this.getAttribute('data-request-id');
+                    console.log(requestID)
+                    let url = `{% url 'friendship_cancel' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', requestID);
+
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                        .then(response => {
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                });
+            });
+
+            acceptFriendRequest.forEach(function (button) {
+                button.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const requestID = this.getAttribute('data-request-id');
+                    console.log(requestID)
+                    let url = `{% url 'friendship_accept' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', requestID);
+
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                        .then(response => {
+                            window.location.reload();
                         })
                         .catch(error => {
                             console.error('Error:', error);
