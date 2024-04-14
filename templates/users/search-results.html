@@ -25,7 +25,10 @@
                                     {% elif info.has_received_request %}
                                         <button class="primary">Accept friend</button>
                                     {% else %}
-                                        <button id="sendFriendRequest" class="primary">Add friend</button>
+                                        <button id="sendFriendRequest"
+                                                class="primary" data-username="{{ account.username }}">Add
+                                            friend
+                                        </button>
                                     {% endif %}
                                 {% elif not info.is_self and info.is_friend %}
                                     <button class="primary">Message</button>
@@ -61,36 +64,46 @@
             </div>
         </div>
     </main>
-{#    <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>#}
+    {#    <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>#}
     <script>
 
-{##}
-{#        function getCookie(name) {#}
-{#            var cookieValue = null;#}
-{#            if (document.cookie && document.cookie != '') {#}
-{#                var cookies = document.cookie.split(';');#}
-{#                for (var i = 0; i < cookies.length; i++) {#}
-{#                    var cookie = cookies[i].trim();#}
-{#                    // Does this cookie string begin with the name we want?#}
-{#                    if (cookie.substring(0, name.length + 1) == (name + '=')) {#}
-{#                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));#}
-{#                        break;#}
-{#                    }#}
-{#                }#}
-{#            }#}
-{#            return cookieValue;#}
-{#        }#}
 
         document.addEventListener('DOMContentLoaded', function () {
-            let btns = document.querySelectorAll("#view-profile-btn");
+            let viewProfileBtns = document.querySelectorAll("#view-profile-btn");
 
-            btns.forEach(function (button) {
-                button.addEventListener('click', function () {
+            let sendRequestBtns = document.querySelectorAll("#sendFriendRequest");
+
+            viewProfileBtns.forEach(function (button) {
+                button.addEventListener('click', function (event) {
+                    event.preventDefault();
                     const username = this.getAttribute('data-username');
                     window.location.href = '{% url 'public-profile' 'USERNAME' %}'.replace('USERNAME', username);
                 });
             });
+
+            sendRequestBtns.forEach(function (button) {
+                button.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const username = this.getAttribute('data-username');
+                    let url = '{% url 'friendship_add_friend' 'USERNAME' %}'.replace('USERNAME', username);
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}' // Include CSRF token
+                        }
+                    })
+                        .then(response => {
+                            window.location.reload(); 
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                });
+            });
+
         });
+
 
     </script>
 {% endblock %}
