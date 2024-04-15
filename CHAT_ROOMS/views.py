@@ -7,6 +7,12 @@ from django.shortcuts import redirect
 from .models import PublicChatRoom
 from .forms import PublicChatRoomForm
 from django.db.models import Q, Max, F
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+
+UserModel = get_user_model()
 
 
 def get_public_chat_rooms():
@@ -104,3 +110,30 @@ class PublicChatRoomEditView(LoginRequiredMixin, UserPassesTestMixin, views.Upda
         context['room'] = self.get_object()
         context['is_admin'] = context['room'].is_admin(self.request.user)
         return context
+
+
+@login_required
+def add_member_to_room(request, room_id, username):
+    room = get_object_or_404(PublicChatRoom, id=room_id)
+    user = get_object_or_404(UserModel, username=username)
+
+    room.members.add(user)
+    room.save()
+
+    members_count = room.members.count()
+
+    return JsonResponse({
+        'status': 'Member added successfully',
+        'members_count': members_count
+    })
+
+
+@login_required
+def remove_member_from_room(request, room_id, username):
+    room = get_object_or_404(PublicChatRoom, id=room_id)
+    user = get_object_or_404(UserModel, username=username)
+
+    room.members.remove(user)
+    room.save()
+
+    return JsonResponse({'status': 'Member removed successfully'})

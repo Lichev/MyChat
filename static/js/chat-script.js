@@ -2,6 +2,7 @@
 
 let roomName = JSON.parse(document.getElementById('json-roomname').textContent);
 let userName = JSON.parse(document.getElementById('json-username').textContent);
+let roomID = JSON.parse(document.getElementById('json-id').textContent);
 
 let chatSocket = new WebSocket(
     'ws://'
@@ -20,7 +21,14 @@ chatSocket.onmessage = function (e) {
 
     if (data.message) {
         let currentDate = new Date();
-        let formattedTimestamp = currentDate.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+        let formattedTimestamp = currentDate.toLocaleString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+        });
 
         let listItem = document.createElement('li');
 
@@ -54,6 +62,7 @@ chatSocket.onclose = function (e) {
     console.log('onclose');
 };
 
+
 document.querySelector('#chat-message-submit').onclick = function (e) {
     e.preventDefault();
 
@@ -80,5 +89,8 @@ function scrollToBottom() {
     let chatHistory = document.querySelector('.chat-history');
     chatHistory.scrollTop = chatHistory.scrollHeight;
 }
+
+
+
 
 scrollToBottom();

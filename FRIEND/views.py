@@ -8,6 +8,7 @@ from FRIEND.models import Friend, FriendshipRequest, FriendShipManager
 from django.conf import settings
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.decorators import login_required
 
 UserModel = get_user_model()
 
@@ -20,6 +21,7 @@ def get_friendship_context_object_list_name():
     return getattr(settings, "FRIENDSHIP_CONTEXT_OBJECT_LIST_NAME", "users")
 
 
+@login_required
 def friendship_add_friend(request, to_username):
     """Create a FriendshipRequest"""
     ctx = {"to_username": to_username}
@@ -94,6 +96,7 @@ def remove_friend_view(request, friend_id):
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
+@login_required
 def show_friends_view(request, ):
     query = request.GET.get('query', '')
     user = request.user
@@ -119,6 +122,7 @@ def show_friends_view(request, ):
     return render(request, 'friend/friends_list.html', context)
 
 
+@login_required
 def show_friends_request(request):
     query = request.GET.get('query', '')
     user = request.user

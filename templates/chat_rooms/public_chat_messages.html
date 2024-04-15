@@ -15,9 +15,9 @@
                     <div class="chat-num-messages">{{ members_len }} online</div>
                 </div>
                 {% if is_admin %}
-                     <i class="fa fa-star"><a href="{% url 'edit_room' current_room.id %}">  Admin</a></i>
-                    {% else %}
-                    <i class="fa fa-star"><a href="">  User</a></i>
+                    <i class="fa fa-star"><a href="{% url 'edit_room' current_room.id %}"> Admin</a></i>
+                {% else %}
+                    <i class="fa fa-star"><a href=""> User</a></i>
                 {% endif %}
 
             </div> <!-- end chat-header -->
@@ -67,7 +67,63 @@
 
         </div> <!-- end chat -->
         {{ current_room.name|json_script:"json-roomname" }}
+        {{ current_room.pk|json_script:"json-id" }}
         {{ request.user.username|json_script:'json-username' }}
         <script src="{% static 'js/chat-script.js' %}"></script>
+
+        <script>
+
+            document.addEventListener('DOMContentLoaded', function () {
+                let isRequestSent = false;
+
+                if (!isRequestSent) {
+                    let url = '{% url 'add_member_to_room' 'ROOMID' 'USERNAME' %}'.replace('ROOMID', roomID).replace('USERNAME', userName);
+                    let membersCountElement = document.getElementsByClassName('.chat-num-messages')
+
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            isRequestSent = true;
+                            updateMembersCount(data.members_count)
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                }
+            });
+
+            window.addEventListener('beforeunload', function (event) {
+                {#event.preventDefault();#}
+
+
+                let url = '{% url 'remove_member_from_room' 'ROOMID' 'USERNAME' %}'.replace('ROOMID', roomID).replace('USERNAME', userName);
+
+                fetch(url, {
+                    method: 'GET',  // or 'POST' if it's a POST request
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(response => {
+                        console.log('Exit from the room');
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            });
+
+            function updateMembersCount(count) {
+                // Update the members count in the DOM
+                let membersCountElement = document.querySelector('.chat-num-messages');
+                membersCountElement.textContent = count + ' online';
+            }
+
+        </script>
     </section>
 {% endblock %}
