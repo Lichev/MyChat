@@ -19,6 +19,7 @@ class PublicChatRoom(models.Model):
     is_private = models.BooleanField(default=False)
     for_friends_only = models.BooleanField(default=False)
     members = models.ManyToManyField(UserModel, related_name='group_members', blank=True)
+
     room_picture = models.ImageField(
         max_length=255,
         upload_to=get_room_picture,

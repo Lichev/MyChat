@@ -13,6 +13,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = self.get_group_name(self.room_name)
+        current_user = self.scope["user"].username
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -72,7 +73,20 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         Message.objects.create(sender=user, room=room, content=message)
 
+    @sync_to_async
+    def add_member(self, username, room):
+        user = UserModel.objects.get(username=username)
+        room = PublicChatRoom.objects.get(name=room)
+        room.members.add(user)
+        room.save()
+
+    @sync_to_async
+    def remove_member(self, username, room):
+        user = UserModel.objects.get(username=username)
+        room = PublicChatRoom.objects.get(name=room)
+        room.members.remove(user)
+        room.save()
+
     def get_group_name(self, room_name):
         sanitized_room_name = re.sub(r'\W+', '_', room_name)
         return f'chat_{sanitized_room_name}'
-

@@ -12,7 +12,7 @@
 
                 <div class="chat-about">
                     <div class="chat-with">{{ current_room.name }}</div>
-                    <div class="chat-num-messages">3 people (2 online)</div>
+                    <div class="chat-num-messages">{{ members_len }} online</div>
                 </div>
                 {% if is_admin %}
                      <i class="fa fa-star"><a href="{% url 'edit_room' current_room.id %}">  Admin</a></i>
