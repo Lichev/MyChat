@@ -98,14 +98,14 @@
                 }
             });
 
-            window.addEventListener('beforeunload', function (event) {
+            window.addEventListener('beforeunload', function () {
                 {#event.preventDefault();#}
 
 
                 let url = '{% url 'remove_member_from_room' 'ROOMID' 'USERNAME' %}'.replace('ROOMID', roomID).replace('USERNAME', userName);
 
                 fetch(url, {
-                    method: 'GET',  // or 'POST' if it's a POST request
+                    method: 'POST',
                     headers: {
                         'X-CSRFToken': '{{ csrf_token }}'
                     }

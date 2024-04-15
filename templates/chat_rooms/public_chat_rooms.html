@@ -30,7 +30,7 @@
                             <div class="search">
                                 {% csrf_token %}
                                 <input id="searchTerminal" type="text" class="searchTerm" name="query"
-                                       placeholder="For who you are looking for?">
+                                       placeholder="Search for room">
                                 <button type="submit" class="searchButton">
                                     <i class="fa fa-search"></i>
                                 </button>
@@ -84,7 +84,12 @@
                     if (searchTerm) {
                         console.log(searchTerm)
                         let url = '{% url 'search_chat_rooms'  'searchTerm' %}'.replace('searchTerm', searchTerm)
-                        fetch(url + '?query=${searchTerm}')
+                        fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            }
+                        })
                             .then(response => response.json())
                             .then(data => {
                                 renderSearchResults(data.data);
@@ -97,6 +102,7 @@
 
                 function renderSearchResults(result) {
                     let resultsContainer = document.querySelector('.list')
+
                     resultsContainer.innerHTML = `
                                             <li class="clearfix add-room">
                             <a href="{% url 'create_room' %}">
@@ -106,13 +112,14 @@
                                 <p>Create room</p>
                             </a>`
 
-                    for (let room of result) { 
+                    for (let room of result) {
                         const listItem = document.createElement('li');
- 
+
                         listItem.classList.add('clearfix');
-                        let url = '{% url 'public_chat_messages' 'ROOMID'  %}'.replace('ROOMID', room.id);
+                        let url = '';
                         listItem.innerHTML = `
-            <a href="${url}">
+            <a href="/rooms/${room.id}">
+{#Hardcoded URL#}
                 <img src="/media/${room.room_picture}"
                      alt="avatar" style="width: 60px; height: 60px;"/>
                 <div class="about">
