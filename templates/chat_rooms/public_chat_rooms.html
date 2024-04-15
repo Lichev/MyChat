@@ -29,7 +29,7 @@
                         <form action="#" method="get">
                             <div class="search">
                                 {% csrf_token %}
-                                <input type="text" class="searchTerm" name="query"
+                                <input id="searchTerminal" type="text" class="searchTerm" name="query"
                                        placeholder="For who you are looking for?">
                                 <button type="submit" class="searchButton">
                                     <i class="fa fa-search"></i>
@@ -37,7 +37,7 @@
                             </div>
                         </form>
                     </div>
-                
+
                     <ul class="list">
                         <li class="clearfix add-room">
                             <a href="{% url 'create_room' %}">
@@ -51,7 +51,7 @@
                         {% for room in public_chat_rooms %}
                             <li class="clearfix">
                                 <a href="{% url 'public_chat_messages' room.id %}">
-                                    <img src="{{ room.room_picture.url }}" 
+                                    <img src="{{ room.room_picture.url }}"
                                          alt="avatar" style="width: 60px; height: 60px;"/>
                                     <div class="about">
                                         <div class="name">{{ room.name }}</div>
@@ -70,10 +70,66 @@
 
 
 
-                {% block right_chat_content %}
-                    <section class=right-chat></section>
-                {% endblock %}
+            {% block right_chat_content %}
+                <section class=right-chat></section>
+            {% endblock %}
 
+            <script>
+                let searchInput = document.getElementById("searchTerminal");
+
+
+                searchInput.addEventListener('input', function () {
+                    let searchTerm = this.value;
+
+                    if (searchTerm) {
+                        console.log(searchTerm)
+                        let url = '{% url 'search_chat_rooms'  'searchTerm' %}'.replace('searchTerm', searchTerm)
+                        fetch(url + '?query=${searchTerm}')
+                            .then(response => response.json())
+                            .then(data => {
+                                renderSearchResults(data.data);
+                            })
+                            .catch(error => console.error('Error:', error));
+                    } else {
+
+                    }
+                });
+
+                function renderSearchResults(result) {
+                    let resultsContainer = document.querySelector('.list')
+                    resultsContainer.innerHTML = `
+                                            <li class="clearfix add-room">
+                            <a href="{% url 'create_room' %}">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Squared_plus.svg/800px-Squared_plus.svg.png"
+                                     alt="avatar"/>
+
+                                <p>Create room</p>
+                            </a>`
+
+                    for (let room of result) { 
+                        const listItem = document.createElement('li');
+ 
+                        listItem.classList.add('clearfix');
+                        let url = '{% url 'public_chat_messages' 'ROOMID'  %}'.replace('ROOMID', room.id);
+                        listItem.innerHTML = `
+            <a href="${url}">
+                <img src="/media/${room.room_picture}"
+                     alt="avatar" style="width: 60px; height: 60px;"/>
+                <div class="about">
+                    <div class="name">${room.name}</div>
+                    <div class="status">
+                        <!-- Add status information here if needed -->
+                    </div>
+                </div>
+            </a>
+        `;
+                        resultsContainer.appendChild(listItem);
+                    }
+
+                }
+
+
+            </script>
         </div>
 
     </main>

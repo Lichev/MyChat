@@ -11,6 +11,8 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from functools import reduce
+import operator
 
 UserModel = get_user_model()
 
@@ -137,3 +139,19 @@ def remove_member_from_room(request, room_id, username):
     room.save()
 
     return JsonResponse({'status': 'Member removed successfully'})
+
+
+@login_required
+def search_chat_rooms(request, query):
+    search_fields = ['name']
+
+    results = PublicChatRoom.objects.all()
+
+    if query:
+        query_list = query.split()
+        filter_conditions = [Q(**{field + '__icontains': term}) for field in search_fields for term in query_list]
+        results = results.filter(reduce(operator.or_, filter_conditions))
+
+    data = list(results.values('id', 'name', 'room_picture'))
+
+    return JsonResponse({'data': data})

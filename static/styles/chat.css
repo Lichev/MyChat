@@ -62,6 +62,7 @@ ul {
 .left-chat, .right-chat {
     background-color: var(--sections-color);
     width: 30vw;
+    min-height: 720px;
     max-height: 720px;
     color: var(--text-color);
 }
