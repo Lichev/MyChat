@@ -132,7 +132,6 @@ def show_friends_request(request):
         result = Friend.objects.requests(user)
         for friend_request in result:
             from_user = UserModel.objects.get(pk=friend_request.from_user_id)
-            print(friend_request.pk)
             accounts.append((friend_request, from_user))
 
     else:

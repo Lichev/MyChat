@@ -71,7 +71,63 @@
 
 
             {% block right_chat_content %}
-                <section class=right-chat></section>
+                <section class=right-chat>
+                    <div class="user-box-nav chat-user-nav">
+                        <a href="{% url 'show_friends' %}">
+                            <div class="mini-box">
+                                <div class="mini-box-text">Friends (0)</div>
+                            </div>
+                        </a>
+
+                        <a href="{% url 'show_friends_request' %}">
+                            <div class="mini-box">
+                                <div class="mini-box-text">Friend Requests (0)</div>
+                            </div>
+                        </a>
+
+                        <a href="">
+                            <div class="mini-box">
+                                <div class="mini-box-text">Groups (23)</div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <hr class="separator"/>
+
+                    <div class="ui-section">
+                        <h2>Friends list</h2>
+                        <ul class="row-list">
+                            <li class="clearfix">
+                                <a href="#" class="a-row">
+                                    <img src="https://www.w3schools.com/howto/img_avatar.png"
+                                         alt="avatar" style="width: 100px; height: 100px;"/>
+                                    <div class="name">Ipsum</div>
+
+                                </a>
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+                    <div class="ui-section">
+                        <h2>My groups</h2>
+                        <ul class="row-list">
+                            <li class="clearfix">
+                                <a href="#" class="a-row">
+                                    <img src="https://www.w3schools.com/howto/img_avatar.png"
+                                         alt="avatar" style="width: 100px; height: 100px;"/>
+                                    <div class="name">Ipsum</div>
+
+                                </a>
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+
+                </section>
             {% endblock %}
 
             <script>
@@ -135,9 +191,59 @@
 
                 }
 
+                window.addEventListener("DOMContentLoaded", (event) => {
+
+
+                    fetch('{% url 'chat_room_info' %}', {
+                        method: 'GET',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log(data)
+                        })
+                        .catch(error => console.error('Error:', error));
+                });
+
+
+                $(document).ready(function () {
+                    $(".row-list").slick({
+                        infinite: true,
+                        slidesToShow: 4,
+                        slidesToScroll: 1,
+                        autoplay: false,
+                        arrows: true,
+                        prevArrow: $(".testimonial-carousel-controls .prev"),
+                        nextArrow: $(".testimonial-carousel-controls .next"),
+                        responsive: [
+                            {
+                                breakpoint: 1200,
+                                settings: {
+                                    slidesToShow: 3
+                                }
+                            },
+                            {
+                                breakpoint: 992,
+                                settings: {
+                                    slidesToShow: 2
+                                }
+                            },
+                            {
+                                breakpoint: 600,
+                                settings: {
+                                    slidesToShow: 1
+                                }
+                            }
+                        ]
+                    });
+                });
+
 
             </script>
         </div>
+
 
     </main>
 

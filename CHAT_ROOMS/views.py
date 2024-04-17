@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from functools import reduce
 import operator
+from FRIEND.models import Friend
 
 UserModel = get_user_model()
 
@@ -155,3 +156,21 @@ def search_chat_rooms(request, query):
     data = list(results.values('id', 'name', 'room_picture'))
 
     return JsonResponse({'data': data})
+
+
+@login_required()
+def chat_rooms_info_json(request):
+    user = request.user
+
+    friends_data = []
+
+    if user:
+        friends = Friend.objects.friends(user)
+
+        for friend in friends:
+            friends_data.append({
+                'id': friend.id,
+                'username': friend.username,
+                'avatar': friend.profile_picture.url
+            })
+    return JsonResponse({'friends': friends_data})
