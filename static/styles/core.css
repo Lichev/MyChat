@@ -1,3 +1,5 @@
+@import url(https://fonts.googleapis.com/css?family=Source+Sans+Pro);
+
 .verify-message {
     background-color: var(--sections-color);
     color: var(--text-color);
@@ -81,7 +83,7 @@ header .circle-small {
 }
 
 
-.hero {
+.hero, .contact-us {
     /*border: 1px solid var(--secondary-color);*/
     /*border-radius: 24px;*/
     width: 80%;
@@ -91,33 +93,29 @@ header .circle-small {
     margin-top: 32px;
 }
 
-.hero {
-    	--b: .6em; /* border width */
-	--c: 4em; /* corner size */
-	--r: 2em; /* corner rounding */
-	position: relative;
+.hero, .contact-us {
+    --b: .6em; /* border width */
+    --c: 4em; /* corner size */
+    --r: 2em; /* corner rounding */
+    position: relative;
 
-	border: solid var(--b) transparent;
+    border: solid var(--b) transparent;
 
-	/*max-width: 23em;*/
-	/*font: 1.2em ubuntu, sans-serif;*/
 
-	&::before {
-		position: absolute;
-		z-index: -1;
-		inset: calc(-1*var(--b));
-		border: inherit;
-		border-radius: var(--r);
-		background: linear-gradient(var(--secondary-color), #06264d, var(--secondary-color)) border-box;
-		--corner:
-			conic-gradient(from -90deg at var(--c) var(--c), red 25%, #0000 0)
-				0 0/ calc(100% - var(--c))  calc(100% - var(--c)) border-box;
-		--inner: conic-gradient(#08262f 0 0) padding-box;
-		-webkit-mask: var(--corner), var(--inner);
-		-webkit-mask-composite: source-out;
-						mask: var(--corner) subtract, var(--inner);
-		content: ''
-	}
+    &::before {
+        position: absolute;
+        z-index: -1;
+        inset: calc(-1 * var(--b));
+        border: inherit;
+        border-radius: var(--r);
+        background: linear-gradient(var(--primary-color), #06264d, var(--secondary-color)) border-box;
+        --corner: conic-gradient(from -90deg at var(--c) var(--c), red 25%, #0000 0) 0 0/ calc(100% - var(--c)) calc(100% - var(--c)) border-box;
+        --inner: conic-gradient(#08262f 0 0) padding-box;
+        -webkit-mask: var(--corner), var(--inner);
+        -webkit-mask-composite: source-out;
+        mask: var(--corner) subtract, var(--inner);
+        content: ''
+    }
 }
 
 .hero-left,
@@ -164,4 +162,138 @@ header .circle-small {
     height: 100%;
     font-size: 28px;
     gap: 24px;
+}
+
+.landing-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.contact-us {
+    height: 600px;
+
+}
+
+.header-section {
+    font-size: 36px;
+    text-align: center;
+    color: var(--text-color);
+    margin-top: 102px;
+
+}
+
+.header-section:hover {
+    color: var(--secondary-color);
+}
+
+
+/*Contact us CSS*/
+/*_______________________________________*/
+.contact-us-left,
+.contact-us-right {
+    flex: 1;
+    width: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 600px;
+    height: 450px;
+    padding: 30px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    -moz-background-clip: padding;
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+
+    overflow: hidden;
+
+    .
+}
+
+
+.contact-form > textarea {
+    background: rgba(255, 255, 255, 0.4) url(http://luismruiz.com/img/gemicon_message.png) no-repeat scroll 16px 16px;
+    width: 276px;
+    height: 110px;
+    border: 1px solid rgba(255, 255, 255, .6);
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+    -moz-background-clip: padding;
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+    display: block;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 18px;
+    color: #fff;
+    padding: 4px 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+
+.contact-form > input {
+    width: 276px;
+    height: 48px;
+    border: 1px solid rgba(255, 255, 255, .4);
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+    -moz-background-clip: padding;
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+    display: block;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 18px;
+    color: #fff;
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-bottom: 20px;
+}
+.contact-form > p {
+    margin-top: 20px;
+}
+
+.contact-form > input[type=submit] {
+    cursor: pointer;
+}
+
+.contact-form > input.name {
+    background: rgba(255, 255, 255, 0.4) url(http://luismruiz.com/img/gemicon_name.png) no-repeat scroll 16px 16px;
+    padding-left: 45px;
+}
+
+.contact-form > input.email {
+    background: rgba(255, 255, 255, 0.4) url(http://luismruiz.com/img/gemicon_email.png) no-repeat scroll 16px 20px;
+    padding-left: 45px;
+}
+
+.contact-form > input.message {
+    background: rgba(255, 255, 255, 0.4) url(http://luismruiz.com/img/gemicon_message.png) no-repeat scroll 16px 16px;
+    padding-left: 45px;
+}
+
+::-webkit-input-placeholder {
+    color: #fff;
+}
+
+:-moz-placeholder {
+    color: #fff;
+}
+
+::-moz-placeholder {
+    color: #fff;
+}
+
+:-ms-input-placeholder {
+    color: #fff;
 }

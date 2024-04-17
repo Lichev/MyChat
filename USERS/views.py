@@ -42,6 +42,32 @@ def send_activation_email(user, request):
     email.send()
 
 
+def send_contact_message(request):
+    if request.method == 'POST':
+        name = request.POST['name']
+        email = request.POST['emailaddress']
+        message = request.POST['subject']
+
+        # Construct email
+        email_subject = 'New contact form submission on MyChat'
+        email_body = render_to_string('core/contact_form_email.txt', {
+            'name': name,
+            'email': email,
+            'message': message,
+        })
+        email = EmailMessage(
+            subject=email_subject,
+            body=email_body,
+            from_email=email,
+            to=[settings.EMAIL_HOST_USER],
+        )
+        email.send()
+
+        return redirect('mail_success')
+    else:
+        return redirect('mail_success')
+
+
 def get_user_context(account, user):
     context = {}
 

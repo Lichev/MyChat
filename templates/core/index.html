@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block content %}
-    <main>
+    <main class="landing-page">
         <section class="hero">
             <div class="hero-left">
                 <div class="my-chat-logo">
@@ -17,19 +17,79 @@
             </div>
 
             <div class="hero-right">
-                <div class="hero-register">
-                    <h2>You dont have account yet?</h2>
-                    <p>Make one</p>
+                {% if not user.is_authenticated %}
+                    <div class="hero-register">
+                        <h2>You dont have account yet?</h2>
+                        <p>Make one</p>
+                        <button id="hero-register-btn" type="submit" class="primary-btn">
+                            Register Here
+                        </button>
+                        <p>OR</p>
+                        <p>You already have?</p>
+                        <button id="hero-login-btn" type="submit" class="primary-btn">
+                            Login here
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="hero-register">
+                        <h2>Welcome again, {{ request.user.username|upper }}!</h2>
+                        <p>You can set-up you account here</p>
+                        <button id="hero-profile-btn" type="submit" class="primary-btn">
+                            Profile
+                        </button>
+                        <p>OR</p>
+                        <p>Join a group here</p>
+                        <button id="hero-groups-btn" type="submit" class="primary-btn">
+                            Groups
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+
+        <h2 class="header-section">Contact Us</h2>
+        <section id="contact-us" class="contact-us">
+            <div class="contact-us-left">
+                <form class="contact-form" action="{% url 'send_contact_message' %}" method="POST">
+                    {% csrf_token %}
+                    <p>Name</p>
+                    <input name="name" placeholder="What is your name?" class="name" required/>
+                    <p>Email</p>
+                    <input name="emailaddress" placeholder="What is your email?" class="email" type="email" required/>
+                    <p>Message</p>
+                    <textarea rows="5" cols="50" name="subject" placeholder="Please enter your message" class="message"
+                              required></textarea>
                     <button type="submit" class="primary-btn">
-                        Register Here
+                        Send
                     </button>
-                    <p>OR</p>
-                    <p>You already have?</p>
-                    <button type="submit" class="primary-btn">
-                        Login here
-                    </button>
-                </div>
+                </form>
+            </div>
+            <div class="contact-us-right">
+                <p>right</p>
             </div>
         </section>
     </main>
+
+    <script>
+        let loginBtn = document.getElementById('hero-login-btn')
+        let registerBtn = document.getElementById('hero-register-btn')
+        let roomsBtn = document.getElementById('hero-groups-btn')
+
+        if (loginBtn) {
+            loginBtn.addEventListener('click', function () {
+                window.location.href = "{% url 'login' %}";
+            });
+        }
+        ;
+
+        if (registerBtn) {
+            registerBtn.addEventListener('click', function () {
+                window.location.href = "{% url 'register' %}";
+            });
+        }
+        ;
+
+
+    </script>
 {% endblock %}
