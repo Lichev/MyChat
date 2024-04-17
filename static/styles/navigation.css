@@ -7,7 +7,7 @@
     --background-color: #0B1422;
     --sections-color: #121f32;
     /*--my-border-color:rgba(200, 200, 200, 0.4);*/
-    --my-border-color:#0B1422;
+    --my-border-color: #0B1422;
 }
 
 html {
@@ -27,17 +27,25 @@ header {
     justify-content: space-around;
     background-color: var(--sections-color);
     align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Optional: Shadow for a lifted effect */
+    position: fixed; /* Make the header fixed */
+    top: 0; /* Position it at the top */
+    left: 0;
+    width: 100%; /* Take full width of the viewport */
+    z-index: 1000; /* Set a high z-index to ensure it's above other content */
+    transition: background-color 0.3s ease;
+/
+
 }
 
-.logo > a:nth-child(1){
+.logo > a:nth-child(1) {
     display: flex;
     flex-direction: row;
     text-decoration: none;
 }
 
 
-
-.logo{
+.logo {
     display: flex;
     flex-direction: row;
     font-size: 1.2em;
@@ -69,7 +77,7 @@ nav ul li {
     font-size: 1.2em;
 }
 
-.main-nav li a:hover{
+.main-nav li a:hover {
     color: var(--secondary-color);
 }
 

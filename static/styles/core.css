@@ -1,5 +1,9 @@
 @import url(https://fonts.googleapis.com/css?family=Source+Sans+Pro);
 
+a {
+    text-decoration: none;
+}
+
 .verify-message {
     background-color: var(--sections-color);
     color: var(--text-color);
@@ -90,12 +94,13 @@ header .circle-small {
     height: 800px;
     display: flex;
     color: var(--text-color);
-    margin-top: 32px;
 }
 
+
+
 .hero, .contact-us {
-    --b: .6em; /* border width */
-    --c: 4em; /* corner size */
+    --b: .2em; /* border width */
+    --c: 8em; /* corner size */
     --r: 2em; /* corner rounding */
     position: relative;
 
@@ -108,7 +113,7 @@ header .circle-small {
         inset: calc(-1 * var(--b));
         border: inherit;
         border-radius: var(--r);
-        background: linear-gradient(var(--primary-color), #06264d, var(--secondary-color)) border-box;
+        background: linear-gradient(var(--primary-color), #0857b0, var(--secondary-color)) border-box;
         --corner: conic-gradient(from -90deg at var(--c) var(--c), red 25%, #0000 0) 0 0/ calc(100% - var(--c)) calc(100% - var(--c)) border-box;
         --inner: conic-gradient(#08262f 0 0) padding-box;
         -webkit-mask: var(--corner), var(--inner);
@@ -222,8 +227,8 @@ header .circle-small {
 
 .contact-form > textarea {
     background: rgba(255, 255, 255, 0.4) url(http://luismruiz.com/img/gemicon_message.png) no-repeat scroll 16px 16px;
-    width: 276px;
-    height: 110px;
+    width: 80%;
+    height: 36%;
     border: 1px solid rgba(255, 255, 255, .6);
     -moz-border-radius: 4px;
     -webkit-border-radius: 4px;
@@ -242,8 +247,7 @@ header .circle-small {
 
 
 .contact-form > input {
-    width: 276px;
-    height: 48px;
+    width: 80%;
     border: 1px solid rgba(255, 255, 255, .4);
     -moz-border-radius: 4px;
     -webkit-border-radius: 4px;
@@ -259,6 +263,7 @@ header .circle-small {
     padding-right: 20px;
     margin-bottom: 20px;
 }
+
 .contact-form > p {
     margin-top: 20px;
 }
@@ -296,4 +301,190 @@ header .circle-small {
 
 :-ms-input-placeholder {
     color: #fff;
+}
+
+.contact-list {
+    list-style-type: none;
+    margin-left: -30px;
+    padding-right: 20px;
+    text-decoration: none;
+}
+
+.list-item {
+    line-height: 4;
+    color: #aaa;
+}
+
+.contact-text {
+    font: 300 18px 'Lato', sans-serif;
+    letter-spacing: 1.9px;
+    color: #bbb;
+}
+
+.place {
+    margin-left: 62px;
+}
+
+.phone {
+    margin-left: 56px;
+}
+
+.gmail {
+    margin-left: 53px;
+}
+
+.contact-text a {
+    color: #bbb;
+    text-decoration: none;
+    transition-duration: 0.2s;
+}
+
+.contact-text a:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
+
+/* Social Media Icons */
+.social-media-list {
+    position: relative;
+    font-size: 22px;
+    text-align: center;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.social-media-list li a {
+    color: #fff;
+}
+
+.social-media-list li {
+    position: relative;
+    display: inline-block;
+    height: 60px;
+    width: 60px;
+    margin: 10px 3px;
+    line-height: 60px;
+    border-radius: 50%;
+    color: #fff;
+    background-color: rgb(27, 27, 27);
+    cursor: pointer;
+    transition: all .2s ease-in-out;
+}
+
+.social-media-list li:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 60px;
+    line-height: 60px;
+    border-radius: 50%;
+    opacity: 0;
+    box-shadow: 0 0 0 1px #fff;
+    transition: all .2s ease-in-out;
+}
+
+.social-media-list li:hover {
+    background-color: #fff;
+}
+
+.social-media-list li:hover:after {
+    opacity: 1;
+    transform: scale(1.12);
+    transition-timing-function: cubic-bezier(0.37, 0.74, 0.15, 1.65);
+}
+
+.social-media-list li:hover a {
+    color: #000;
+}
+
+.copyright {
+    font: 200 14px 'Oswald', sans-serif;
+    color: #555;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+hr {
+    border-color: rgba(255, 255, 255, .6);
+}
+
+
+/* Begin Media Queries*/
+@media screen and (max-width: 850px) {
+    .contact-wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .direct-contact-container, .form-horizontal {
+        margin: 0 auto;
+    }
+
+    .direct-contact-container {
+        margin-top: 60px;
+        max-width: 300px;
+    }
+
+    .social-media-list li {
+        height: 60px;
+        width: 60px;
+        line-height: 60px;
+    }
+
+    .social-media-list li:after {
+        width: 60px;
+        height: 60px;
+        line-height: 60px;
+    }
+}
+
+@media screen and (max-width: 569px) {
+
+    .direct-contact-container, .form-wrapper {
+        float: none;
+        margin: 0 auto;
+    }
+
+    .form-control, textarea {
+
+        margin: 0 auto;
+    }
+
+
+    .name, .email, textarea {
+        width: 280px;
+    }
+
+    .direct-contact-container {
+        margin-top: 60px;
+        max-width: 280px;
+    }
+
+    .social-media-list {
+        left: 0;
+    }
+
+    .social-media-list li {
+        height: 55px;
+        width: 55px;
+        line-height: 55px;
+        font-size: 2rem;
+    }
+
+    .social-media-list li:after {
+        width: 55px;
+        height: 55px;
+        line-height: 55px;
+    }
+
+}
+
+@media screen and (max-width: 410px) {
+    .send-button {
+        width: 99%;
+    }
 }

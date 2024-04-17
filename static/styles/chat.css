@@ -45,8 +45,8 @@ ul {
     display: flex;
     flex-direction: row;
     justify-content: space-evenly;
-    margin-top: 26px;
     gap: 10px;
+    height: 1100px;
 }
 
 .chat-user-info-wrapper {
@@ -62,8 +62,7 @@ ul {
 .left-chat, .right-chat {
     background-color: var(--sections-color);
     width: 30vw;
-    min-height: 720px;
-    max-height: 720px;
+    height: 80%;
     color: var(--text-color);
 }
 
