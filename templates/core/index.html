@@ -123,6 +123,13 @@
         }
         ;
 
+        if (roomsBtn) {
+            roomsBtn.addEventListener('click', function () {
+                window.location.href = "{% url 'public_chat_room' %}";
+            });
+        }
+        ;
+
 
     </script>
 {% endblock %}
