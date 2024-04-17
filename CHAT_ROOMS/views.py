@@ -163,9 +163,11 @@ def chat_rooms_info_json(request):
     user = request.user
 
     friends_data = []
+    my_groups_data = []
 
     if user:
         friends = Friend.objects.friends(user)
+        my_groups = PublicChatRoom.objects.filter(creator=user.pk)
 
         for friend in friends:
             friends_data.append({
@@ -173,4 +175,12 @@ def chat_rooms_info_json(request):
                 'username': friend.username,
                 'avatar': friend.profile_picture.url
             })
-    return JsonResponse({'friends': friends_data})
+
+        for group in my_groups:
+            my_groups_data.append({
+                'id': group.id,
+                'name': group.name,
+                'avatar': group.room_picture.url
+            })
+
+    return JsonResponse({'friends': friends_data, 'groups_data': my_groups_data})

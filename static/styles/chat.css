@@ -377,9 +377,9 @@ html body main div.chat-menu-wrapper section.left-chat div#people-list.people-li
     list-style: none;
 }
 
-.row-list > li {
-    width: 100%;
-}
+/*.row-list > li {*/
+/*    width: 100%;*/
+/*}*/
 
 
 .a-row {
@@ -391,6 +391,7 @@ html body main div.chat-menu-wrapper section.left-chat div#people-list.people-li
     width: 100px;
     height: 130px;
     margin-bottom: 10px;
+    align-items: center;
 }
 
 

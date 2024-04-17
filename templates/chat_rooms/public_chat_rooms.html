@@ -75,7 +75,7 @@
                     <div class="user-box-nav chat-user-nav">
                         <a href="{% url 'show_friends' %}">
                             <div class="mini-box">
-                                <div class="mini-box-text">Friends (0)</div>
+                                <div id="friends-length" class="mini-box-text">Friends (0)</div>
                             </div>
                         </a>
 
@@ -96,15 +96,8 @@
 
                     <div class="ui-section">
                         <h2>Friends list</h2>
-                        <ul class="row-list">
-                            <li class="clearfix">
-                                <a href="#" class="a-row">
-                                    <img src="https://www.w3schools.com/howto/img_avatar.png"
-                                         alt="avatar" style="width: 100px; height: 100px;"/>
-                                    <div class="name">Ipsum</div>
+                        <ul id="row-list-friends" class="row-list">
 
-                                </a>
-                            </li>
 
                         </ul>
 
@@ -112,15 +105,7 @@
 
                     <div class="ui-section">
                         <h2>My groups</h2>
-                        <ul class="row-list">
-                            <li class="clearfix">
-                                <a href="#" class="a-row">
-                                    <img src="https://www.w3schools.com/howto/img_avatar.png"
-                                         alt="avatar" style="width: 100px; height: 100px;"/>
-                                    <div class="name">Ipsum</div>
-
-                                </a>
-                            </li>
+                        <ul id="row-list-groups" class="row-list">
 
                         </ul>
 
@@ -192,7 +177,8 @@
                 }
 
                 window.addEventListener("DOMContentLoaded", (event) => {
-
+                    let friendsUL = document.getElementById('row-list-friends')
+                    let groupsUL = document.getElementById('row-list-groups')
 
                     fetch('{% url 'chat_room_info' %}', {
                         method: 'GET',
@@ -202,12 +188,42 @@
                     })
                         .then(response => response.json())
                         .then(data => {
-                            console.log(data)
+                            data.friends.forEach(friend => {
+                                let url = '{% url 'public-profile'  'USERNAME' %}'.replace('USERNAME', friend.username);
+                                const htmlString = `
+                <li class="clearfix">
+                    <a href="${url}" class="a-row">
+                        <img src="${friend.avatar}"
+                             alt="${friend.username}" style="width: 80px; height: 80px;"/>
+                        <div class="name">${friend.username}</div>
+                    </a>
+                </li>
+            `;
+
+                                friendsUL.innerHTML += htmlString;
+
+                            })
+                            friendsLen = document.getElementById('friends-length')
+                            friendsLen.innerText = `Friends (${data.friends.length})`
+
+                             data.groups_data.forEach(group => {
+                                const htmlString = `
+                <li class="clearfix">
+                    <a href="#" class="a-row">
+                        <img src="${group.avatar}"
+                             alt="${group.name}" style="width: 80px; height: 80px;"/>
+                        <div class="name">${group.name}</div>
+                    </a>
+                </li>
+            `;
+
+                                groupsUL.innerHTML += htmlString;
+
+                            })
+                        console.log(data.data_groups)
                         })
                         .catch(error => console.error('Error:', error));
                 });
-
-                
 
 
             </script>
