@@ -87,7 +87,7 @@
 
                         <a href="">
                             <div class="mini-box">
-                                <div class="mini-box-text">Groups (23)</div>
+                                <div id="groups-length" class="mini-box-text">Groups (23)</div>
                             </div>
                         </a>
                     </div>
@@ -206,7 +206,7 @@
                             friendsLen = document.getElementById('friends-length')
                             friendsLen.innerText = `Friends (${data.friends.length})`
 
-                             data.groups_data.forEach(group => {
+                            data.groups_data.forEach(group => {
                                 const htmlString = `
                 <li class="clearfix">
                     <a href="#" class="a-row">
@@ -220,7 +220,8 @@
                                 groupsUL.innerHTML += htmlString;
 
                             })
-                        console.log(data.data_groups)
+                            groupsLen = document.getElementById('groups-length')
+                            groupsLen.innerText = `Groups (${data.groups_data.length})`
                         })
                         .catch(error => console.error('Error:', error));
                 });
