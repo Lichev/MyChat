@@ -122,7 +122,8 @@ class ChatUser(AbstractUser):
         default=get_default_profile_picture,
     )
 
-    phone_number = models.PositiveIntegerField(
+    phone_number = models.CharField(
+        max_length=20,
         blank=True,
         null=True,
     )
@@ -147,7 +148,7 @@ class ChatUser(AbstractUser):
     bio = models.TextField(blank=True)
 
     interests = models.CharField(
-        max_length=20,
+        max_length=50,
         choices=INTEREST_CHOICES,
         blank=True,
     )
@@ -160,7 +161,7 @@ class ChatUser(AbstractUser):
 
     @property
     def get_mail(self):
-        return {self.email}
+        return self.email
 
     def __str__(self):
         return self.username
@@ -169,7 +170,9 @@ class ChatUser(AbstractUser):
         return str(self.profile_picture)[str(self.profile_picture).index(f'profile_images/{self.pk}/'):]
 
     def has_perm(self, perm, obj=None):
-        return self.is_admin
+        if self.is_active and self.is_superuser:
+            return True
+        return super().has_perm(perm, obj)
 
     def has_module_perms(self, app_label):
         return True

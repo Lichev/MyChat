@@ -4,8 +4,9 @@ from django.contrib.auth import get_user_model
 UserModel = get_user_model()
 
 
-def get_room_picture(self, filename):
-    return f'room_images/rooms_avatars/{"profile_image.png"}'
+def get_room_picture(instance, filename):
+    ext = filename.rsplit('.', 1)[-1]
+    return f'room_images/{instance.pk}/room_picture.{ext}'
 
 
 def get_default_room_picture():
@@ -13,7 +14,7 @@ def get_default_room_picture():
 
 
 class PublicChatRoom(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, unique=True)
     creator = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name='created_rooms')
     admins = models.ManyToManyField(UserModel, related_name='administered_rooms', blank=True)
     is_private = models.BooleanField(default=False)
@@ -28,6 +29,11 @@ class PublicChatRoom(models.Model):
         default=get_default_room_picture,
     )
 
+    class Meta:
+        verbose_name = 'Public Chat Room'
+        verbose_name_plural = 'Public Chat Rooms'
+        ordering = ['name']
+
     def __str__(self):
         return self.name
 
@@ -41,8 +47,8 @@ class PublicChatRoom(models.Model):
 
 
 class Message(models.Model):
-    room = models.ForeignKey(PublicChatRoom, on_delete=models.CASCADE)
-    sender = models.ForeignKey(UserModel, on_delete=models.CASCADE)
+    room = models.ForeignKey(PublicChatRoom, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name='sent_messages')
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     likes = models.ManyToManyField(UserModel, related_name='liked_messages', blank=True)

@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse_lazy
 from dotenv import load_dotenv
 
@@ -12,31 +13,35 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', True)
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured("SECRET_KEY environment variable is not set.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', True)
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1').split(' ')
+
+_trusted_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = _trusted_origins.split(' ') if _trusted_origins else []
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',                           # must be first for ASGI/runserver integration
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'daphne',
     'django.contrib.staticfiles',
 
     'USERS',
     'CORE',
     'FRIEND',
-    "CHAT_ROOMS",
+    'CHAT_ROOMS',
 
     'channels',
-
 ]
 
 MIDDLEWARE = [
@@ -109,8 +114,9 @@ USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -120,39 +126,55 @@ AUTH_USER_MODEL = 'USERS.ChatUser'
 LOGIN_REDIRECT_URL = reverse_lazy('index')
 LOGOUT_REDIRECT_URL = reverse_lazy('index')
 
+_LOG_LEVEL = os.environ.get('LOG_LEVEL', 'WARNING')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
         'console': {
-            'level': 'DEBUG',  # Set the desired log level (DEBUG, INFO, WARNING, ERROR, etc.)
+            'level': _LOG_LEVEL,
             'class': 'logging.StreamHandler',
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG',  # Set the desired log level (DEBUG, INFO, WARNING, ERROR, etc.)
+        'level': _LOG_LEVEL,
     },
     'loggers': {
         'django.channels': {
             'handlers': ['console'],
-            'level': 'DEBUG',  # Set the desired log level (DEBUG, INFO, WARNING, ERROR, etc.)
+            'level': _LOG_LEVEL,
             'propagate': False,
         },
         'django.db.backends': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': _LOG_LEVEL,
             'propagate': False,
         },
     },
 }
 
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': "channels.layers.InMemoryChannelLayer"
+REDIS_URL = os.environ.get('REDIS_URL', None)
+
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        }
     }
-}
+else:
+    # InMemoryChannelLayer is only suitable for single-process development.
+    # Set REDIS_URL in production.
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        }
+    }
 
 
 
@@ -162,5 +184,5 @@ EMAIL_FROM_USER = os.environ.get('EMAIL_FROM_USER', None)
 EMAIL_HOST = os.environ.get('EMAIL_HOST', None)
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', None)
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', None)
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', None)
-EMAIL_PORT = os.environ.get('EMAIL_PORT', None)
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))

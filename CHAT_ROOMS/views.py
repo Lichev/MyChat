@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views import generic as views
 from .models import PublicChatRoom, Message
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from .models import PublicChatRoom
 from .forms import PublicChatRoomForm
@@ -33,11 +33,8 @@ def get_public_chat_rooms():
 
 
 # Create your views here.
-class PublicChatRoomView(LoginRequiredMixin, UserPassesTestMixin, views.TemplateView):
+class PublicChatRoomView(LoginRequiredMixin, views.TemplateView):
     template_name = 'chat_rooms/public_chat_rooms.html'
-
-    def test_func(self):
-        return self.request.user.is_authenticated
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -45,23 +42,20 @@ class PublicChatRoomView(LoginRequiredMixin, UserPassesTestMixin, views.Template
         return context
 
 
-class PublicChatRoomMessages(LoginRequiredMixin, UserPassesTestMixin, views.ListView):
+class PublicChatRoomMessages(LoginRequiredMixin, views.ListView):
     model = Message
     template_name = 'chat_rooms/public_chat_messages.html'
     context_object_name = 'messages'
 
-    def test_func(self):
-        return self.request.user.is_authenticated
-
     def get_queryset(self):
         room_id = self.kwargs['room_id']
-        return Message.objects.filter(room_id=room_id)[0:25]
+        return Message.objects.filter(room_id=room_id).order_by('timestamp')[:25]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['public_chat_rooms'] = get_public_chat_rooms()
         room_id = self.kwargs['room_id']
-        current_room = PublicChatRoom.objects.get(id=room_id)
+        current_room = get_object_or_404(PublicChatRoom, id=room_id)
         context['current_room'] = current_room
         context['members_len'] = current_room.members.count()
         current_user = self.request.user
@@ -71,14 +65,11 @@ class PublicChatRoomMessages(LoginRequiredMixin, UserPassesTestMixin, views.List
         return context
 
 
-class PublicChatRoomCreateView(LoginRequiredMixin, UserPassesTestMixin, views.CreateView):
+class PublicChatRoomCreateView(LoginRequiredMixin, views.CreateView):
     model = PublicChatRoom
     form_class = PublicChatRoomForm
     template_name = 'chat_rooms/create_room.html'
     success_url = reverse_lazy('public_chat_room')
-
-    def test_func(self):
-        return self.request.user.is_authenticated
 
     def form_valid(self, form):
         form.instance.creator = self.request.user
@@ -90,19 +81,16 @@ class PublicChatRoomCreateView(LoginRequiredMixin, UserPassesTestMixin, views.Cr
         return context
 
 
-class PublicChatRoomEditView(LoginRequiredMixin, UserPassesTestMixin, views.UpdateView):
+class PublicChatRoomEditView(LoginRequiredMixin, views.UpdateView):
     model = PublicChatRoom
     form_class = PublicChatRoomForm
     template_name = 'chat_rooms/edit_room.html'
     pk_url_kwarg = 'room_id'
     success_url = reverse_lazy('public_chat_room')
 
-    def test_func(self):
-        return self.request.user.is_authenticated
-
     def get_object(self, queryset=None):
         room_id = self.kwargs.get(self.pk_url_kwarg)
-        return PublicChatRoom.objects.get(id=room_id)
+        return get_object_or_404(PublicChatRoom, id=room_id)
 
     def get_queryset(self):
         return PublicChatRoom.objects.filter(Q(admins=self.request.user) | Q(creator=self.request.user))
@@ -120,6 +108,10 @@ def add_member_to_room(request, room_id, username):
     room = get_object_or_404(PublicChatRoom, id=room_id)
     user = get_object_or_404(UserModel, username=username)
 
+    # Only the joining user may add themselves, or an admin may add others.
+    if request.user != user and not room.is_admin(request.user):
+        return JsonResponse({'status': 'Forbidden'}, status=403)
+
     room.members.add(user)
     room.save()
 
@@ -135,6 +127,10 @@ def add_member_to_room(request, room_id, username):
 def remove_member_from_room(request, room_id, username):
     room = get_object_or_404(PublicChatRoom, id=room_id)
     user = get_object_or_404(UserModel, username=username)
+
+    # Only the leaving user may remove themselves, or an admin may remove others.
+    if request.user != user and not room.is_admin(request.user):
+        return JsonResponse({'status': 'Forbidden'}, status=403)
 
     room.members.remove(user)
     room.save()
@@ -158,29 +154,28 @@ def search_chat_rooms(request, query):
     return JsonResponse({'data': data})
 
 
-@login_required()
+@login_required
 def chat_rooms_info_json(request):
     user = request.user
 
-    friends_data = []
-    my_groups_data = []
+    friends = Friend.objects.friends(user)
+    my_groups = PublicChatRoom.objects.filter(creator=user)
 
-    if user:
-        friends = Friend.objects.friends(user)
-        my_groups = PublicChatRoom.objects.filter(creator=user.pk)
-
-        for friend in friends:
-            friends_data.append({
-                'id': friend.id,
-                'username': friend.username,
-                'avatar': friend.profile_picture.url
-            })
-
-        for group in my_groups:
-            my_groups_data.append({
-                'id': group.id,
-                'name': group.name,
-                'avatar': group.room_picture.url
-            })
+    friends_data = [
+        {
+            'id': friend.id,
+            'username': friend.username,
+            'avatar': friend.profile_picture.url,
+        }
+        for friend in friends
+    ]
+    my_groups_data = [
+        {
+            'id': group.id,
+            'name': group.name,
+            'avatar': group.room_picture.url,
+        }
+        for group in my_groups
+    ]
 
     return JsonResponse({'friends': friends_data, 'groups_data': my_groups_data})

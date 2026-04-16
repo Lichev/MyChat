@@ -1,0 +1,121 @@
+.right-personal-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+
+.user-box-nav {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 5vh;
+}
+
+.user-box-nav a {
+    text-decoration: none;
+    color: inherit;
+    width: 20%;
+    background: linear-gradient(130deg, var(--sections-color) 0%, var(--primary-color) 100%);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px var(--background-color);
+}
+
+.user-box-nav a:hover {
+    border-color: var(--secondary-color);
+}
+
+#user-public-profile-form{
+    width: 20%;
+}
+
+#user-public-profile-btn{
+        background: linear-gradient(130deg, var(--sections-color) 0%, var(--primary-color) 100%);
+        box-shadow: 0 8px 24px var(--background-color);
+        border: none;
+
+}
+
+#user-public-profile-btn:hover{
+    cursor: pointer;
+}
+
+.mini-box {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    font-size: 20px;
+    text-align: center;
+    width: 100%;
+}
+
+.mini-box-text {
+    text-align: center;
+}
+
+.separator {
+    border: none;
+    height: 2px;
+    background-color: var(--secondary-color);
+    margin-top: 2vh;
+    margin-bottom: 0;
+    width: 90%;
+}
+
+
+.profile-card {
+    box-shadow: 0 8px 24px var(--background-color);
+    width: 600px;
+    margin: auto;
+    padding: 24px;
+
+    background: linear-gradient(130deg, var(--sections-color) 0%, var(--primary-color) 100%);
+
+    border-radius: 8px;
+    text-align: center;
+    color: var(--text-color);
+
+}
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin: auto;
+}
+
+.profile-name {
+    font-size: 22px;
+    margin: 10px 0;
+
+}
+
+.profile-username {
+    font-size: 20px;
+    color: grey;
+}
+
+.profile-info {
+    line-height: 1.6;
+    font-size: 22px;
+    margin: 2px 0;
+    text-align: center;
+}
+
+.profile-bio {
+    font-style: italic;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.profile-card .separator {
+    background-color: var(--background-color);
+    margin: auto;
+}
+

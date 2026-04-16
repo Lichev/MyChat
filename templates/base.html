@@ -9,9 +9,12 @@
 
     <link rel="stylesheet" href="{% static 'styles/reset.css' %}">
     <link rel="stylesheet" href="{% static 'styles/styles.css' %}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    
-    <title>MyChat</title>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+          integrity="sha512-SfTiTlX6kk+qitfevl/7LibUOeJWlt9rbyDn92a1DqWOw9vWG2MFoays0sgObmWazO5BQPiFucnnEAjpAB+/Sw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <title>{% block title %}MyChat{% endblock %}</title>
 </head>
 <body>
 <header>
@@ -27,7 +30,6 @@
             <li>
                 <div class="wrap-search">
                     <form action="{% url 'search-results' %}" method="get">
-                        {% csrf_token %}
                         <div class="search">
                             <input type="text" class="searchTerm" name="query" placeholder="What are you looking for?">
                             <button type="submit" class="searchButton">

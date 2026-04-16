@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth import views as auth_views, get_user_model, login
 from django.db.models import Q
 from django.http import HttpResponse, Http404
@@ -19,6 +21,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 
+logger = logging.getLogger(__name__)
+
 from FRIEND.models import Friend, FriendshipRequest, FriendShipManager
 
 UserModel = get_user_model()
@@ -39,29 +43,40 @@ def send_activation_email(user, request):
                          from_email=settings.EMAIL_FROM_USER,
                          to=[user.email]
                          )
-    email.send()
+    try:
+        email.send()
+    except Exception:
+        logger.exception("Failed to send activation email to %s", user.email)
 
 
 def send_contact_message(request):
     if request.method == 'POST':
-        name = request.POST['name']
-        email = request.POST['emailaddress']
-        message = request.POST['subject']
+        name = request.POST.get('name', '').strip()
+        sender_email = request.POST.get('emailaddress', '').strip()
+        message = request.POST.get('subject', '').strip()
 
-        # Construct email
+        if not name or not sender_email or not message:
+            messages.error(request, 'All fields are required.')
+            return redirect('mail_success')
+
+        # Construct email — use the server's own address as from_email to
+        # prevent spoofing; include the sender's address in the body.
         email_subject = 'New contact form submission on MyChat'
         email_body = render_to_string('core/contact_form_email.txt', {
             'name': name,
-            'email': email,
+            'email': sender_email,
             'message': message,
         })
         email = EmailMessage(
             subject=email_subject,
             body=email_body,
-            from_email=email,
+            from_email=settings.EMAIL_FROM_USER,
             to=[settings.EMAIL_HOST_USER],
         )
-        email.send()
+        try:
+            email.send()
+        except Exception:
+            logger.exception("Failed to send contact form email from %s", sender_email)
 
         return redirect('mail_success')
     else:
@@ -74,7 +89,7 @@ def get_user_context(account, user):
     is_friend = Friend.objects.are_friends(account, user)
     has_sent_request = FriendshipRequest.objects.filter(from_user=user, to_user=account).exists()
     has_received_request = FriendshipRequest.objects.filter(from_user=account, to_user=user).exists()
-    friends_len = len(Friend.objects.filter(from_user=account))
+    friends_len = len(Friend.objects.friends(account))
 
     if has_received_request:
         request = FriendshipRequest.objects.filter(from_user=account, to_user=user).first()
@@ -194,9 +209,9 @@ class PublicUserView(LoginRequiredMixin, views.DetailView):
         return get_object_or_404(UserModel, username=username)
 
     def get_context_data(self, **kwargs):
-        account = self.get_object()  # The user from the current view
-        user = self.request.user  # The logged user
         context = super().get_context_data(**kwargs)
+        account = self.object  # already fetched by DetailView — avoids a second DB query
+        user = self.request.user
 
         context.update(get_user_context(account, user))
 
@@ -214,11 +229,7 @@ class ProfileSettingsView(LoginRequiredMixin, UserPassesTestMixin, views.DetailV
 class ProfileSettingsName(LoginRequiredMixin, UserPassesTestMixin, views.UpdateView):
     model = UserModel
     template_name = 'users/profile-settings-name.html'
-
-    fields = [
-        'first_name',
-        'last_name'
-    ]
+    form_class = ProfileSettingsNameForm
 
     def test_func(self):
         return self.request.user == self.get_object()
@@ -283,7 +294,5 @@ def search_view(request, *args, **kwargs):
         'page_obj': page_obj,
         'query': query
     }
-
-    print(context)
 
     return render(request, 'users/search-results.html', context)

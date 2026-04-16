@@ -78,7 +78,7 @@
 
                 if (!isRequestSent) {
                     let url = '{% url 'add_member_to_room' 'ROOMID' 'USERNAME' %}'.replace('ROOMID', roomID).replace('USERNAME', userName);
-                    let membersCountElement = document.getElementsByClassName('.chat-num-messages')
+                    let membersCountElement = document.getElementsByClassName('chat-num-messages')
 
 
                     fetch(url, {
@@ -119,9 +119,10 @@
             });
 
             function updateMembersCount(count) {
-                // Update the members count in the DOM
                 let membersCountElement = document.querySelector('.chat-num-messages');
-                membersCountElement.textContent = count + ' online';
+                if (membersCountElement) {
+                    membersCountElement.textContent = count + ' online';
+                }
             }
 
         </script>

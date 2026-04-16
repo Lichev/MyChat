@@ -76,13 +76,13 @@ class FriendshipRequest(models.Model):
     from_user = models.ForeignKey(
         UserModel,
         on_delete=models.CASCADE,
-        related_name="friendship_request_sent"
+        related_name="friendship_requests_sent"
     )
 
     to_user = models.ForeignKey(
         UserModel,
         on_delete=models.CASCADE,
-        related_name="friendship_requests_sent"
+        related_name="friendship_requests_received"
     )
 
     message = models.TextField(_("Message"), blank=True)
@@ -182,7 +182,7 @@ class FriendShipManager(models.Manager):
         key = cache_key("sent_requests", user.pk)
         requests = cache.get(key)
 
-        if requests is not None:
+        if requests is None:
             qs = FriendshipRequest.objects.filter(from_user=user)
             qs = self._friendship_request_select_related(qs, 'from_user', 'to_user')
             requests = list(qs)
@@ -203,7 +203,7 @@ class FriendShipManager(models.Manager):
         if FriendshipRequest.objects.filter(from_user=to_user, to_user=from_user).exists():
             raise ValidationError("This user already requested friendship from you.")
 
-        if message is not None:
+        if message is None:
             message = ""
 
         request, created = FriendshipRequest.objects.get_or_create(from_user=from_user, to_user=to_user)
@@ -217,6 +217,10 @@ class FriendShipManager(models.Manager):
 
         bust_cache("requests", to_user.pk)
         bust_cache("sent_requests", from_user.pk)
+
+        from FRIEND.signals import friendship_request_created
+        friendship_request_created.send(sender=request, from_user=from_user, to_user=to_user)
+
         return request
 
     def remove_friend(self, from_user, to_user):

@@ -11,7 +11,7 @@
                     <a href="#" class="circle">
                         <img height="120px" width="120px"
                              src="{{ object.profile_picture.url }}"
-                             alt="Cloud Chen">
+                             alt="{{ object.full_name }}">
                     </a>
                 </div>
 
@@ -19,32 +19,32 @@
                     {% if not is_self and not is_friend %}
                         {% if has_sent_request %}
 
-                            <form id="user-public-profile-form" method="post"
+                            <form class="user-public-profile-form" method="post"
                                   action="{% url 'friendship_cancel' request_id %}">
                                 {% csrf_token %}
-                                <button class="mini-box" id="user-public-profile-btn" type="submit">Cancel</button>
+                                <button class="mini-box user-public-profile-btn" type="submit">Cancel</button>
                             </form>
                         {% elif has_received_request %}
 
-                            <form id="user-public-profile-form" method="post"
+                            <form class="user-public-profile-form" method="post"
                                   action="{% url 'friendship_accept' request_id %}">
                                 {% csrf_token %}
-                                <button class="mini-box" id="user-public-profile-btn" type="submit">Accept</button>
+                                <button class="mini-box user-public-profile-btn" type="submit">Accept</button>
                             </form>
 
-                            <form id="user-public-profile-form" method="post"
+                            <form class="user-public-profile-form" method="post"
                                   action="{% url 'friendship_reject' request_id %}">
                                 {% csrf_token %}
-                                <button class="mini-box" id="user-public-profile-btn" type="submit">Reject</button>
+                                <button class="mini-box user-public-profile-btn" type="submit">Reject</button>
                             </form>
 
 
                         {% else %}
 
-                            <form id="user-public-profile-form" method="post"
+                            <form class="user-public-profile-form" method="post"
                                   action="{% url 'friendship_add_friend' to_username.username %}">
                                 {% csrf_token %}
-                                <button class="mini-box" id="user-public-profile-btn" type="submit">Add as a friend
+                                <button class="mini-box user-public-profile-btn" type="submit">Add as a friend
                                 </button>
                             </form>
                         {% endif %}
@@ -54,10 +54,10 @@
                                 <div class="mini-box-text">Message</div>
                             </div>
                         </a>
-                        <form id="user-public-profile-form" method="post"
+                        <form class="user-public-profile-form" method="post"
                               action="{% url 'remove_friend' to_username.id %}">
                             {% csrf_token %}
-                            <button class="mini-box" id="user-public-profile-btn" type="submit">Remove</button>
+                            <button class="mini-box user-public-profile-btn" type="submit">Remove</button>
                         </form>
                     {% endif %}
 
@@ -107,7 +107,8 @@
                     {% endif %}
 
                     {% if object.city or object.country %}
-                        <p class="profile-info"><strong>Location:</strong> {{ object.city }}, {{ object.country }}
+                        <p class="profile-info"><strong>Location:</strong>
+                            {% if object.city %}{{ object.city }}{% if object.country %}, {% endif %}{% endif %}{{ object.country }}
                         </p>
                     {% endif %}
                     <p class="profile-info"><strong>Date joined:</strong> {{ object.date_joined }}</p>

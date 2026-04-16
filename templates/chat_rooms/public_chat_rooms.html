@@ -118,12 +118,18 @@
             <script>
                 let searchInput = document.getElementById("searchTerminal");
 
+                function debounce(fn, delay) {
+                    let timer;
+                    return function (...args) {
+                        clearTimeout(timer);
+                        timer = setTimeout(() => fn.apply(this, args), delay);
+                    };
+                }
 
-                searchInput.addEventListener('input', function () {
+                searchInput.addEventListener('input', debounce(function () {
                     let searchTerm = this.value;
 
                     if (searchTerm) {
-                        console.log(searchTerm)
                         let url = '{% url 'search_chat_rooms'  'searchTerm' %}'.replace('searchTerm', searchTerm)
                         fetch(url, {
                             method: 'GET',
@@ -131,15 +137,16 @@
                                 'X-CSRFToken': '{{ csrf_token }}'
                             }
                         })
-                            .then(response => response.json())
+                            .then(response => {
+                                if (!response.ok) throw new Error('Search failed: ' + response.status);
+                                return response.json();
+                            })
                             .then(data => {
                                 renderSearchResults(data.data);
                             })
                             .catch(error => console.error('Error:', error));
-                    } else {
-
                     }
-                });
+                }, 300));
 
                 function renderSearchResults(result) {
                     let resultsContainer = document.querySelector('.list')
@@ -186,7 +193,10 @@
                             'X-CSRFToken': '{{ csrf_token }}'
                         }
                     })
-                        .then(response => response.json())
+                        .then(response => {
+                            if (!response.ok) throw new Error('Failed to load room info: ' + response.status);
+                            return response.json();
+                        })
                         .then(data => {
                             data.friends.forEach(friend => {
                                 let url = '{% url 'public-profile'  'USERNAME' %}'.replace('USERNAME', friend.username);
@@ -203,8 +213,8 @@
                                 friendsUL.innerHTML += htmlString;
 
                             })
-                            friendsLen = document.getElementById('friends-length')
-                            friendsLen.innerText = `Friends (${data.friends.length})`
+                            let friendsLen = document.getElementById('friends-length');
+                            friendsLen.innerText = `Friends (${data.friends.length})`;
 
                             data.groups_data.forEach(group => {
                                 const htmlString = `
@@ -220,8 +230,8 @@
                                 groupsUL.innerHTML += htmlString;
 
                             })
-                            groupsLen = document.getElementById('groups-length')
-                            groupsLen.innerText = `Groups (${data.groups_data.length})`
+                            let groupsLen = document.getElementById('groups-length');
+                            groupsLen.innerText = `Groups (${data.groups_data.length})`;
                         })
                         .catch(error => console.error('Error:', error));
                 });

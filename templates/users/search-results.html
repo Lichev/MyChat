@@ -21,16 +21,16 @@
                             <div class="actions">
                                 {% if not info.is_self and not info.is_friend %}
                                     {% if info.has_sent_request %}
-                                        <button id="cancelFriendRequest" class="primary"
+                                        <button class="cancelFriendRequest primary"
                                                 data-request-id="{{ info.request_id }}">Cancel request
                                         </button>
                                     {% elif info.has_received_request %}
-                                        <button id="acceptFriendRequest" class="primary"
+                                        <button class="acceptFriendRequest primary"
                                                 data-request-id="{{ info.request_id }}">Accept friend
                                         </button>
                                     {% else %}
-                                        <button id="sendFriendRequest"
-                                                class="primary" data-username="{{ account.username }}">Add
+                                        <button class="sendFriendRequest primary"
+                                                data-username="{{ account.username }}">Add
                                             friend
                                         </button>
                                     {% endif %}
@@ -39,7 +39,7 @@
                                 {% else %}
                                     <button class="primary">This is you</button>
                                 {% endif %}
-                                <button id="view-profile-btn" class="secondary" data-username="{{ account.username }}">
+                                <button class="view-profile-btn secondary" data-username="{{ account.username }}">
                                     View profile
                                 </button>
                             </div>
@@ -73,13 +73,13 @@
 
 
         document.addEventListener('DOMContentLoaded', function () {
-            let viewProfileBtns = document.querySelectorAll("#view-profile-btn");
+            let viewProfileBtns = document.querySelectorAll(".view-profile-btn");
 
-            let sendRequestBtns = document.querySelectorAll("#sendFriendRequest");
+            let sendRequestBtns = document.querySelectorAll(".sendFriendRequest");
 
-            let cancelFriendRequest = document.querySelectorAll("#cancelFriendRequest");
+            let cancelFriendRequest = document.querySelectorAll(".cancelFriendRequest");
 
-            let acceptFriendRequest = document.querySelectorAll("#acceptFriendRequest");
+            let acceptFriendRequest = document.querySelectorAll(".acceptFriendRequest");
 
             viewProfileBtns.forEach(function (button) {
                 button.addEventListener('click', function (event) {
@@ -114,7 +114,6 @@
                 button.addEventListener('click', function (event) {
                     event.preventDefault();
                     const requestID = this.getAttribute('data-request-id');
-                    console.log(requestID)
                     let url = `{% url 'friendship_cancel' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', requestID);
 
 
@@ -137,7 +136,6 @@
                 button.addEventListener('click', function (event) {
                     event.preventDefault();
                     const requestID = this.getAttribute('data-request-id');
-                    console.log(requestID)
                     let url = `{% url 'friendship_accept' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', requestID);
 
 

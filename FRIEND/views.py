@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth import views as auth_views, get_user_model, login
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
@@ -8,7 +10,8 @@ from FRIEND.models import Friend, FriendshipRequest, FriendShipManager
 from django.conf import settings
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.decorators import login_required
+
+logger = logging.getLogger(__name__)
 
 UserModel = get_user_model()
 
@@ -27,7 +30,7 @@ def friendship_add_friend(request, to_username):
     ctx = {"to_username": to_username}
 
     if request.method == "POST":
-        to_user = UserModel.objects.get(username=to_username)
+        to_user = get_object_or_404(UserModel, username=to_username)
         from_user = request.user
         try:
             Friend.objects.add_friend(from_user, to_user)
@@ -63,7 +66,7 @@ def friendship_reject(request, friendship_request_id):
         f_request = get_object_or_404(
             FriendshipRequest.objects.filter(id=friendship_request_id),  # Adjusted filter
         )
-        f_request.cancel()
+        f_request.reject()
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
     return redirect(request.META.get('HTTP_REFERER', '/'))
@@ -87,7 +90,7 @@ def remove_friend_view(request, friend_id):
     """ Remove a friendship between two users """
     friend = get_object_or_404(UserModel, id=friend_id)
     user = request.user
-    print(friend)
+    logger.debug("remove_friend_view: user=%s removing friend=%s", user, friend)
     if request.method == "POST":
         Friend.objects.remove_friend(user, friend)
 
