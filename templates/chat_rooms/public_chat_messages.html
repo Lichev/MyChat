@@ -33,7 +33,7 @@
 
   <!-- Message history -->
   <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Messages">
-    {% for message in messages %}
+    {% for message in chat_messages %}
       {% if message.sender == request.user %}
         <div class="msg-row msg-row--outgoing">
           <div class="msg-content">
@@ -43,11 +43,19 @@
             </div>
             <div class="msg-bubble msg-bubble--outgoing">{{ message.content }}</div>
           </div>
+          {% if message.sender.profile_picture %}
+          <img src="{{ message.sender.profile_picture.url }}" alt="{{ message.sender.username }}" class="msg-avatar" width="32" height="32">
+          {% else %}
           <span class="msg-avatar--placeholder" aria-hidden="true"></span>
+          {% endif %}
         </div>
       {% else %}
         <div class="msg-row msg-row--incoming">
+          {% if message.sender.profile_picture %}
+          <img src="{{ message.sender.profile_picture.url }}" alt="{{ message.sender.username }}" class="msg-avatar" width="32" height="32">
+          {% else %}
           <span class="msg-avatar--placeholder" aria-hidden="true"></span>
+          {% endif %}
           <div class="msg-content">
             <div class="msg-meta">
               <span class="msg-name">{{ message.sender.username }}</span>

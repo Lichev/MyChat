@@ -15,35 +15,16 @@
     </div>
 
     <h1 class="auth-card__title">Create account</h1>
-    <p class="auth-card__subtitle">Join the conversation</p>
+    <p class="auth-card__subtitle">No email required. Just a username and password.</p>
 
     <form action="{% url 'register' %}" method="post" class="auth-form" novalidate>
       {% csrf_token %}
       <input type="hidden" name="text" value="{{ next }}">
 
       <div class="user-box">
-        <label for="{{ form.email.id_for_label }}">Email</label>
-        {{ form.email|placeholder:'you@example.com' }}
-        {{ form.email.errors }}
-      </div>
-
-      <div class="user-box">
         <label for="{{ form.username.id_for_label }}">Username</label>
         {{ form.username|placeholder:'Choose a username' }}
         {{ form.username.errors }}
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4)">
-        <div class="user-box">
-          <label for="{{ form.first_name.id_for_label }}">First name</label>
-          {{ form.first_name|placeholder:'First' }}
-          {{ form.first_name.errors }}
-        </div>
-        <div class="user-box">
-          <label for="{{ form.last_name.id_for_label }}">Last name</label>
-          {{ form.last_name|placeholder:'Last' }}
-          {{ form.last_name.errors }}
-        </div>
       </div>
 
       <div class="user-box">
@@ -54,12 +35,12 @@
 
       <div class="user-box">
         <label for="{{ form.password2.id_for_label }}">Confirm password</label>
-        {{ form.password2|placeholder:'Repeat your password' }}
+        {{ form.password2|placeholder:'Confirm your password' }}
         {{ form.password2.errors }}
       </div>
 
       <button type="submit" class="btn btn-primary btn-full" style="margin-top:var(--s-2)">
-        Create account
+        Create account — get your recovery key
       </button>
     </form>
 

@@ -15,8 +15,8 @@
        class="settings-tab {% block tab_name %}{% endblock %}">Name</a>
     <a href="{% url 'profile-settings-avatar' request.user.pk %}"
        class="settings-tab {% block tab_avatar %}{% endblock %}">Avatar</a>
-    <a href="#"
-       class="settings-tab">Email</a>
+    <a href="{% url 'profile-settings-security' request.user.pk %}"
+       class="settings-tab {% block tab_security %}{% endblock %}">Security</a>
     <a href="{% url 'profile-settings-info' request.user.pk %}"
        class="settings-tab {% block tab_info %}{% endblock %}">Personal info</a>
     <a href="#"

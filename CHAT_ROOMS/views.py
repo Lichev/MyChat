@@ -87,17 +87,20 @@ class PublicChatRoomView(LoginRequiredMixin, views.TemplateView):
 class PublicChatRoomMessages(LoginRequiredMixin, views.ListView):
     model = Message
     template_name = 'chat_rooms/public_chat_messages.html'
-    context_object_name = 'messages'
+    context_object_name = 'chat_messages'
 
     def get_queryset(self):
         room_id = self.kwargs['room_id']
-        # select_related on sender avoids N+1 when rendering avatars/usernames per bubble
-        return (
+        # Fetch the most recent PAGE_SIZE messages (newest-first), then reverse so the
+        # template renders them oldest-first (top → bottom), matching WebSocket append order.
+        msgs = list(
             Message.objects
             .filter(room_id=room_id)
             .select_related('sender')
-            .order_by('timestamp')[:PAGE_SIZE]
+            .order_by('-timestamp')[:PAGE_SIZE]
         )
+        msgs.reverse()
+        return msgs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -118,7 +121,7 @@ class PublicChatRoomMessages(LoginRequiredMixin, views.ListView):
         # The oldest message in the current page — used as the cursor for the next page load.
         # oldest_message_id is the primary cursor (ID ordering is stable); timestamp is
         # provided as a secondary convenience value for display purposes.
-        qs = context['messages']
+        qs = context['chat_messages']
         if qs:
             context['oldest_message_id'] = qs[0].pk
             context['oldest_message_timestamp'] = qs[0].timestamp.isoformat()
@@ -240,6 +243,7 @@ def chat_rooms_info_json(request):
 
     friends = Friend.objects.friends(user)
     my_groups = PublicChatRoom.objects.filter(creator=user)
+    requests_count = len(Friend.objects.requests(user))
 
     friends_data = [
         {
@@ -258,4 +262,4 @@ def chat_rooms_info_json(request):
         for group in my_groups
     ]
 
-    return JsonResponse({'friends': friends_data, 'groups_data': my_groups_data})
+    return JsonResponse({'friends': friends_data, 'groups_data': my_groups_data, 'requests_count': requests_count})

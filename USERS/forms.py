@@ -6,11 +6,10 @@ UserModel = get_user_model()
 
 
 class RegisterUserForm(auth_forms.UserCreationForm):
-    email = forms.EmailField(required=True)
 
     class Meta:
         model = UserModel
-        fields = ('username', 'email', 'password1', 'password2', 'first_name', 'last_name')
+        fields = ('username', 'password1', 'password2')
 
 
 class ProfileSettingsNameForm(forms.ModelForm):

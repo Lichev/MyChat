@@ -127,6 +127,70 @@
   </div>
 </header>
 
+<!-- ── RECOVERY KEY REMINDER BANNER ───────────────────────────────── -->
+{% if request.session.show_key_banner %}
+<div class="key-banner" id="keyBanner" role="alert" aria-live="polite">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex-shrink:0">
+    <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 4v3m0 2.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+  <span>
+    <strong>Save your recovery key.</strong>
+    It is the only way to recover your account if you forget your password.
+    You can rotate it in <a href="{% url 'profile-settings-security' request.user.pk %}">Security settings</a>.
+  </span>
+  <button class="key-banner__close" id="keyBannerClose" aria-label="Dismiss">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </button>
+</div>
+<style>
+.key-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-6);
+  background: rgba(245,158,11,0.12);
+  border-bottom: 1px solid rgba(245,158,11,0.3);
+  font-size: var(--font-size-sm);
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.key-banner a { color: var(--warn); text-decoration: underline; }
+.key-banner strong { color: var(--warn); }
+.key-banner__close {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  padding: var(--s-1);
+  border-radius: var(--r-sm);
+  transition: color var(--dur-fast);
+}
+.key-banner__close:hover { color: var(--text-1); }
+</style>
+<script>
+(function () {
+  var btn = document.getElementById('keyBannerClose');
+  var banner = document.getElementById('keyBanner');
+  if (!btn || !banner) return;
+  btn.addEventListener('click', function () {
+    banner.style.transition = 'opacity 0.25s';
+    banner.style.opacity = '0';
+    setTimeout(function () { banner.remove(); }, 260);
+    var csrf = document.cookie.match(/csrftoken=([^;]+)/);
+    fetch('{% url "dismiss_key_banner" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf ? csrf[1] : '' },
+      credentials: 'same-origin',
+    });
+  });
+}());
+</script>
+{% endif %}
+
 <!-- ── PAGE CONTENT ────────────────────────────────────────────────── -->
 <div class="page-wrap">
   {% block content %}{% endblock %}

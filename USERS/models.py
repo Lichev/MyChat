@@ -10,26 +10,17 @@ from django.conf import settings
 
 class MyAccountManager(BaseUserManager):
 
-    def create_user(self, username, email, password=None):
+    def create_user(self, username, password=None):
         if not username:
             raise ValueError('Users must have a username.')
-        if not email:
-            raise ValueError('Users must have an email address.')
 
-        user = self.model(
-            email=self.normalize_email(email),
-            username=username
-        )
+        user = self.model(username=username)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, username, email, password):
-        user = self.create_user(
-            email=self.normalize_email(email),
-            username=username,
-            password=password
-        )
+    def create_superuser(self, username, password):
+        user = self.create_user(username=username, password=password)
         user.is_admin = True
         user.is_staff = True
         user.is_superuser = True
@@ -81,12 +72,7 @@ class ChatUser(AbstractUser):
         # Add more interests as needed
     )
 
-    email = models.EmailField(
-        unique=True,
-        blank=False,
-    )
-
-    hide_email = models.BooleanField(default=True)
+    email = None  # fully removed — no email column; apply migration step2 after Story 1.2 removes all code references
 
     first_name = models.CharField(
         max_length=NAME_MAX_LENGTH,
@@ -112,6 +98,8 @@ class ChatUser(AbstractUser):
 
     )
 
+    REQUIRED_FIELDS = []
+
     is_admin = models.BooleanField(default=False)
 
     profile_picture = models.ImageField(
@@ -133,7 +121,8 @@ class ChatUser(AbstractUser):
         null=True,
     )
 
-    is_email_verified = models.BooleanField(default=False)
+    recovery_key_hash = models.CharField(max_length=255, null=True, blank=True)
+    recovery_key_created_at = models.DateTimeField(null=True, blank=True)
 
     country = models.CharField(
         max_length=100,
@@ -158,10 +147,6 @@ class ChatUser(AbstractUser):
     @property
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
-
-    @property
-    def get_mail(self):
-        return self.email
 
     def __str__(self):
         return self.username

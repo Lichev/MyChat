@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Recover your account — MyChat{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card" style="max-width:480px">
+
+    <!-- Logo -->
+    <div class="auth-card__logo">
+      <span class="brand-my">My</span><span class="brand-chat">Chat</span>
+      <span class="brand-dot" aria-hidden="true"></span>
+    </div>
+
+    <h1 class="auth-card__title">Recover your account</h1>
+    <p class="auth-card__subtitle">Enter your recovery key to set a new password.</p>
+
+    {% if is_locked_out %}
+    <!-- ── Lockout panel — replaces form entirely ─────────────── -->
+    <div class="recover-lockout" role="alert">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10 6v4.5M10 13.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <strong>Too many attempts.</strong>
+        <p>Please wait 15 minutes before trying again.</p>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- ── Recovery form ──────────────────────────────────────── -->
+    <form action="{% url 'account_recover' %}" method="post" class="auth-form" novalidate id="recoverForm">
+      {% csrf_token %}
+
+      <div class="user-box">
+        <label for="id_username">Username</label>
+        <input
+          type="text"
+          name="username"
+          id="id_username"
+          placeholder="Your username"
+          autocomplete="username"
+          value="{{ form.username.value|default:'' }}"
+        >
+        {% if form.username.errors %}
+        <ul>{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+
+      <div class="user-box">
+        <label for="id_recovery_key">Recovery key</label>
+        <input
+          type="text"
+          name="recovery_key"
+          id="id_recovery_key"
+          class="recover-key-input"
+          placeholder="Paste or type your recovery key"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+        >
+        {% if form.recovery_key.errors %}
+        <ul>{% for e in form.recovery_key.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% if form.non_field_errors %}
+        <ul>{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% if key_error %}
+        <ul><li>{{ key_error }}</li></ul>
+        {% endif %}
+      </div>
+
+      <div class="user-box">
+        <label for="id_new_password1">New password</label>
+        <input
+          type="password"
+          name="new_password1"
+          id="id_new_password1"
+          placeholder="Create a new password"
+          autocomplete="new-password"
+        >
+        {% if form.new_password1.errors %}
+        <ul>{% for e in form.new_password1.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+
+      <div class="user-box">
+        <label for="id_new_password2">Confirm new password</label>
+        <input
+          type="password"
+          name="new_password2"
+          id="id_new_password2"
+          placeholder="Confirm your new password"
+          autocomplete="new-password"
+        >
+        {% if form.new_password2.errors %}
+        <ul>{% for e in form.new_password2.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:var(--s-2)">
+        Reset password
+      </button>
+    </form>
+
+    {% if show_dead_end %}
+    <!-- ── Dead-end notice — shown after repeated failures ───── -->
+    <div class="recover-dead-end" role="note">
+      <p>
+        If you've lost your recovery key, your account cannot be recovered.
+        This is by design — MyChat stores no email addresses and no way to
+        verify identity without the key.
+      </p>
+      <a href="{% url 'register' %}">Create a new account instead</a>
+    </div>
+    {% endif %}
+
+    {% endif %}{# end is_locked_out #}
+
+    <div class="auth-footer">
+      <span>
+        Remember your password?
+        <a href="{% url 'login' %}">Sign in</a>
+      </span>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  .recover-key-input {
+    font-family: var(--font-mono) !important;
+    letter-spacing: 0.04em;
+  }
+
+  .recover-lockout {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-3);
+    padding: var(--s-4) var(--s-5);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: var(--r-md);
+    color: var(--warn);
+    margin-bottom: var(--s-6);
+    font-size: var(--font-size-sm);
+  }
+  .recover-lockout svg { flex-shrink: 0; margin-top: 1px; }
+  .recover-lockout strong { display: block; font-weight: 600; margin-bottom: var(--s-1); }
+  .recover-lockout p { margin: 0; color: var(--text-2); }
+
+  .recover-dead-end {
+    margin-top: var(--s-6);
+    padding: var(--s-4) var(--s-5);
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-3);
+    line-height: 1.6;
+  }
+  .recover-dead-end p { margin: 0 0 var(--s-3); }
+  .recover-dead-end a {
+    color: var(--accent-bright);
+    transition: color var(--dur-fast);
+  }
+  .recover-dead-end a:hover { color: var(--accent-glow); }
+</style>
+
+<script>
+(function () {
+  'use strict';
+  /* Trim whitespace from recovery key on submit — handles paste artifacts */
+  var form = document.getElementById('recoverForm');
+  var keyInput = document.getElementById('id_recovery_key');
+  if (form && keyInput) {
+    form.addEventListener('submit', function () {
+      keyInput.value = keyInput.value.trim();
+    });
+  }
+}());
+</script>
+{% endblock %}

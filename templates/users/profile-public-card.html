@@ -71,13 +71,6 @@
     <div class="profile-card__body">
       <dl style="display:flex;flex-direction:column;gap:var(--s-4)">
 
-        {% if show_email or is_self %}
-        <div style="display:flex;gap:var(--s-4);align-items:baseline">
-          <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Email</dt>
-          <dd style="color:var(--text-1);font-size:var(--font-size-sm)">{{ object.email }}</dd>
-        </div>
-        {% endif %}
-
         {% if object.phone_number %}
         <div style="display:flex;gap:var(--s-4);align-items:baseline">
           <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Phone</dt>
