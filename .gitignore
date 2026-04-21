@@ -1,4 +1,5 @@
 
+CHANGES_*.md
 *.sqlite3
 *.pyc
 venv/
