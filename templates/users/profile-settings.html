@@ -1,47 +1,53 @@
 {% extends 'users/profile.html' %}
-
 {% load static %}
 {% load custom_filters %}
 
 {% block right_content %}
-    <div class="right-section-wrapper">
-        <div class="section-left">
-            <h2 class="profile-settings-header">Profile Settings</h2>
+<div class="profile-card">
+  <div class="profile-card__header">
+    <h2 class="profile-card__title">Settings</h2>
+    <p class="profile-card__subtitle">Manage your account details</p>
+  </div>
 
-            <ul class="profile-settings-nav">
-                <li>
-                    <a href="{% url 'profile-settings-name' request.user.pk%}" style="--c: #373B44;--b: 5px;--s:12px" id="nameButton">Name</a>
-                </li>
-                <li>
-                    <a href="{% url 'profile-settings-avatar' request.user.pk%}" style="--c: #373B44;--b: 5px;--s:12px" id="avatarButton">Avatar</a>
-                </li>
-                <li>
-                    <a href="#" style="--c: #373B44;--b: 5px;--s:12px" id="emailButton">Email</a>
-                </li>
-                <li>
-                    <a href="{% url 'profile-settings-info' request.user.pk%}" style="--c: #373B44;--b: 5px;--s:12px" id="personalInfoButton">Personal Info</a>
-                </li>
-                <li>
-                    <a href="#" style="--c: #373B44;--b: 5px;--s:12px" id="interestsButton">Interests</a>
-                </li>
-                <li>
-                    <a href="#" style="--c: #373B44;--b: 5px;--s:12px" id="bioButton">Bio</a>
-                </li>
-            </ul>
+  <!-- Settings sub-nav -->
+  <div style="display:flex;gap:var(--s-1);padding:0 var(--s-6);border-bottom:1px solid var(--border);overflow-x:auto">
+    <a href="{% url 'profile-settings-name' request.user.pk %}"
+       class="settings-tab {% block tab_name %}{% endblock %}">Name</a>
+    <a href="{% url 'profile-settings-avatar' request.user.pk %}"
+       class="settings-tab {% block tab_avatar %}{% endblock %}">Avatar</a>
+    <a href="#"
+       class="settings-tab">Email</a>
+    <a href="{% url 'profile-settings-info' request.user.pk %}"
+       class="settings-tab {% block tab_info %}{% endblock %}">Personal info</a>
+    <a href="#"
+       class="settings-tab">Interests</a>
+    <a href="#"
+       class="settings-tab">Bio</a>
+  </div>
 
+  <div class="profile-card__body">
+    {% block settings_content %}{% endblock %}
+  </div>
+</div>
 
-        </div>
-
-        <div class="section-right">
-            {% block settings_content %}
-
-            {% endblock %}
-        </div>
-
-    <script src="{% static 'js/view-profile.js' %}"></script>
-
-    </div>
-
+<style>
+.settings-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-3);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  transition: color var(--dur-base), border-color var(--dur-base);
+  white-space: nowrap;
+  margin-bottom: -1px;
+}
+.settings-tab:hover { color: var(--text-1); }
+.settings-tab.active {
+  color: var(--accent-bright);
+  border-bottom-color: var(--accent);
+}
+</style>
 {% endblock %}
-
-

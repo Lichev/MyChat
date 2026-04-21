@@ -134,8 +134,9 @@ def show_friends_request(request):
     if user:
         result = Friend.objects.requests(user)
         for friend_request in result:
-            from_user = UserModel.objects.get(pk=friend_request.from_user_id)
-            accounts.append((friend_request, from_user))
+            # from_user is already select_related by FriendShipManager.requests() —
+            # no extra DB query needed here.
+            accounts.append((friend_request, friend_request.from_user))
 
     else:
         accounts = UserModel.objects.none()

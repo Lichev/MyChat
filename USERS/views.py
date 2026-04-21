@@ -1,4 +1,5 @@
 import logging
+import time
 
 from django.contrib.auth import views as auth_views, get_user_model, login
 from django.db.models import Q
@@ -19,7 +20,10 @@ from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
+
+CONTACT_FORM_COOLDOWN_SECONDS = 60
 
 logger = logging.getLogger(__name__)
 
@@ -49,38 +53,51 @@ def send_activation_email(user, request):
         logger.exception("Failed to send activation email to %s", user.email)
 
 
+@require_POST
 def send_contact_message(request):
-    if request.method == 'POST':
-        name = request.POST.get('name', '').strip()
-        sender_email = request.POST.get('emailaddress', '').strip()
-        message = request.POST.get('subject', '').strip()
-
-        if not name or not sender_email or not message:
-            messages.error(request, 'All fields are required.')
-            return redirect('mail_success')
-
-        # Construct email — use the server's own address as from_email to
-        # prevent spoofing; include the sender's address in the body.
-        email_subject = 'New contact form submission on MyChat'
-        email_body = render_to_string('core/contact_form_email.txt', {
-            'name': name,
-            'email': sender_email,
-            'message': message,
-        })
-        email = EmailMessage(
-            subject=email_subject,
-            body=email_body,
-            from_email=settings.EMAIL_FROM_USER,
-            to=[settings.EMAIL_HOST_USER],
-        )
-        try:
-            email.send()
-        except Exception:
-            logger.exception("Failed to send contact form email from %s", sender_email)
-
+    # Session-based rate limit: one submission per CONTACT_FORM_COOLDOWN_SECONDS.
+    # Note: for unauthenticated visitors this only works if the client maintains
+    # session cookies. A cookieless client can bypass the cooldown. This is an
+    # acceptable limitation for a public contact form — add IP-based rate limiting
+    # (e.g. django-ratelimit) for stronger protection in production.
+    last_sent = request.session.get('contact_form_last_sent', 0)
+    now = time.time()
+    if now - last_sent < CONTACT_FORM_COOLDOWN_SECONDS:
+        wait = int(CONTACT_FORM_COOLDOWN_SECONDS - (now - last_sent))
+        messages.error(request, f'Please wait {wait} seconds before sending another message.')
         return redirect('mail_success')
-    else:
+
+    name = request.POST.get('name', '').strip()
+    sender_email = request.POST.get('emailaddress', '').strip()
+    message = request.POST.get('subject', '').strip()
+
+    if not name or not sender_email or not message:
+        messages.error(request, 'All fields are required.')
         return redirect('mail_success')
+
+    # Construct email — use the server's own address as from_email to
+    # prevent spoofing; include the sender's address in the body.
+    email_subject = 'New contact form submission on MyChat'
+    email_body = render_to_string('core/contact_form_email.txt', {
+        'name': name,
+        'email': sender_email,
+        'message': message,
+    })
+    email = EmailMessage(
+        subject=email_subject,
+        body=email_body,
+        from_email=settings.EMAIL_FROM_USER,
+        to=[settings.EMAIL_HOST_USER],
+    )
+    try:
+        email.send()
+    except Exception:
+        logger.exception("Failed to send contact form email from %s", sender_email)
+
+    # Record the send time so the cooldown check above applies on the next request.
+    request.session['contact_form_last_sent'] = time.time()
+
+    return redirect('mail_success')
 
 
 def get_user_context(account, user):
@@ -214,6 +231,11 @@ class PublicUserView(LoginRequiredMixin, views.DetailView):
         user = self.request.user
 
         context.update(get_user_context(account, user))
+
+        # Enforce hide_email server-side so templates don't need to re-implement the logic.
+        # Email is visible only when the account owner has not hidden it, or the viewer is
+        # the account owner themselves.
+        context['show_email'] = (not account.hide_email) or (user == account)
 
         return context
 

@@ -2,62 +2,219 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
-    <link rel="stylesheet" href="{% static 'styles/reset.css' %}">
-    <link rel="stylesheet" href="{% static 'styles/styles.css' %}">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
-          integrity="sha512-SfTiTlX6kk+qitfevl/7LibUOeJWlt9rbyDn92a1DqWOw9vWG2MFoays0sgObmWazO5BQPiFucnnEAjpAB+/Sw=="
-          crossorigin="anonymous" referrerpolicy="no-referrer">
+  <!-- Design system fonts (Inter + JetBrains Mono via @import inside CSS) -->
+  <!-- Preconnect for Google Fonts performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <title>{% block title %}MyChat{% endblock %}</title>
+  <!-- Design system — loads first to set custom properties -->
+  <link rel="stylesheet" href="{% static 'styles/design-system.css' %}">
+  <!-- Component styles -->
+  <link rel="stylesheet" href="{% static 'styles/nav.css' %}">
+  <link rel="stylesheet" href="{% static 'styles/components.css' %}">
+  <link rel="stylesheet" href="{% static 'styles/chat-ui.css' %}">
+  <link rel="stylesheet" href="{% static 'styles/auth.css' %}">
+  <link rel="stylesheet" href="{% static 'styles/profile-ui.css' %}">
+
+  {% block extra_css %}{% endblock %}
+
+  <title>{% block title %}MyChat{% endblock %}</title>
 </head>
 <body>
-<header>
-    <div class="logo">
-        <a href="{% url 'index' %}">
-            <h1 class=" first-heading">My</h1>
-            <h1 class="second-heading">Chat</h1>
-        </a>
+
+<!-- ── NAVIGATION ─────────────────────────────────────────────────── -->
+<header class="topnav" id="topnav">
+  <div class="topnav__inner">
+
+    <!-- Wordmark -->
+    <a href="{% url 'index' %}" class="topnav__brand" aria-label="MyChat home">
+      <span class="brand-my">My</span><span class="brand-chat">Chat</span>
+      <span class="brand-dot" aria-hidden="true"></span>
+    </a>
+
+    <!-- Search trigger (opens inline search bar) -->
+    {% if request.user.is_authenticated %}
+    <button class="topnav__search-trigger" id="searchTrigger" aria-label="Search" aria-expanded="false">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span>Search</span>
+      <kbd>Ctrl K</kbd>
+    </button>
+
+    <!-- Inline search bar (hidden until trigger) -->
+    <div class="topnav__search-bar" id="searchBar" role="search" hidden>
+      <form action="{% url 'search-results' %}" method="get" class="search-form">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input
+          type="text"
+          name="query"
+          id="globalSearch"
+          class="search-input"
+          placeholder="Search users, rooms…"
+          autocomplete="off"
+          autofocus
+        >
+        <button type="button" class="search-close" id="searchClose" aria-label="Close search">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </form>
     </div>
+    {% endif %}
 
-    <nav class="main-nav">
-        <ul>
-            <li>
-                <div class="wrap-search">
-                    <form action="{% url 'search-results' %}" method="get">
-                        <div class="search">
-                            <input type="text" class="searchTerm" name="query" placeholder="What are you looking for?">
-                            <button type="submit" class="searchButton">
-                                <i class="fa fa-search"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
+    <!-- Right-side nav -->
+    <nav class="topnav__links" aria-label="Main navigation">
+      {% if not request.user.is_authenticated %}
+        <a href="#contact-us" class="nav-link">Contact</a>
+        <a href="{% url 'login' %}" class="nav-link">Sign in</a>
+        <a href="{% url 'register' %}" class="nav-btn">Get started</a>
+      {% else %}
+        <a href="{% url 'index' %}" class="nav-link {% block nav_home_active %}{% endblock %}">Home</a>
+        <a href="{% url 'public_chat_room' %}" class="nav-link {% block nav_rooms_active %}{% endblock %}">Rooms</a>
 
-            </li>
+        <!-- Avatar dropdown -->
+        <div class="nav-avatar-wrap" id="navAvatarWrap">
+          <button class="nav-avatar-btn" id="navAvatarBtn" aria-haspopup="true" aria-expanded="false" aria-label="User menu">
+            <img
+              src="{{ request.user.profile_picture.url }}"
+              alt="{{ request.user.username }}"
+              class="nav-avatar-img"
+              width="32" height="32"
+            >
+            <span class="nav-avatar-name">{{ request.user.username }}</span>
+            <svg class="nav-avatar-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
 
-            {% if not request.user.is_authenticated %}
-                <li><a href="#contact-us">Contacts</a></li>
-                <li><a href="{% url 'login' %}">Login</a></li>
-                <li><a href="{% url 'register' %}">Register</a></li>
-            {% else %}
-                <li><a href="{% url 'index' %}">Home</a></li>
-                <li><a href="{% url 'public_chat_room' %}">Rooms</a></li>
-                <li><a href="{% url 'profile' request.user.pk %}">Profile</a></li>
-                <li><a href="{% url 'logout' %}" id="logout">Logout</a></li>
-            {% endif %}
-        </ul>
+          <div class="nav-dropdown" id="navDropdown" role="menu" hidden>
+            <a href="{% url 'profile' request.user.pk %}" class="nav-dropdown__item" role="menuitem">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M1.5 12.5C1.5 10 4 8 7 8s5.5 2 5.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+              Profile
+            </a>
+            <a href="{% url 'profile-settings' request.user.pk %}" class="nav-dropdown__item" role="menuitem">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.636 2.636l1.06 1.06M10.304 10.304l1.06 1.06M2.636 11.364l1.06-1.06M10.304 3.696l1.06-1.06" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+              Settings
+            </a>
+            <hr class="nav-dropdown__sep" role="separator">
+            <a href="{% url 'logout' %}" class="nav-dropdown__item nav-dropdown__item--danger" role="menuitem">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M5.5 2H2.5A1.5 1.5 0 001 3.5v7A1.5 1.5 0 002.5 12h3M9.5 10l3-3-3-3M12.5 7h-7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Sign out
+            </a>
+          </div>
+        </div>
+      {% endif %}
     </nav>
+
+  </div>
 </header>
 
-{% block content %}
-{% endblock %}
+<!-- ── PAGE CONTENT ────────────────────────────────────────────────── -->
+<div class="page-wrap">
+  {% block content %}{% endblock %}
+</div>
 
+<!-- ── GLOBAL TOASTS (for django messages) ────────────────────────── -->
+{% if messages %}
+<div class="toast-stack" role="alert" aria-live="polite">
+  {% for message in messages %}
+  <div class="toast toast--{{ message.tags|default:'info' }}">
+    <span>{{ message }}</span>
+    <button class="toast__close" aria-label="Dismiss">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ── GLOBAL JS ───────────────────────────────────────────────────── -->
+<script>
+(function() {
+  'use strict';
+
+  /* --- Search toggle --- */
+  const trigger   = document.getElementById('searchTrigger');
+  const bar       = document.getElementById('searchBar');
+  const closeBtn  = document.getElementById('searchClose');
+  const input     = document.getElementById('globalSearch');
+
+  if (trigger && bar) {
+    function openSearch() {
+      bar.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      if (input) input.focus();
+    }
+    function closeSearch() {
+      bar.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+    trigger.addEventListener('click', openSearch);
+    if (closeBtn) closeBtn.addEventListener('click', closeSearch);
+
+    // Ctrl+K shortcut
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        bar.hidden ? openSearch() : closeSearch();
+      }
+      if (e.key === 'Escape') closeSearch();
+    });
+  }
+
+  /* --- Avatar dropdown --- */
+  const avatarBtn  = document.getElementById('navAvatarBtn');
+  const dropdown   = document.getElementById('navDropdown');
+
+  if (avatarBtn && dropdown) {
+    avatarBtn.addEventListener('click', function() {
+      const open = !dropdown.hidden;
+      dropdown.hidden = open;
+      avatarBtn.setAttribute('aria-expanded', String(!open));
+    });
+    document.addEventListener('click', function(e) {
+      const wrap = document.getElementById('navAvatarWrap');
+      if (wrap && !wrap.contains(e.target)) {
+        dropdown.hidden = true;
+        avatarBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+    // Keyboard close
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !dropdown.hidden) {
+        dropdown.hidden = true;
+        avatarBtn.setAttribute('aria-expanded', 'false');
+        avatarBtn.focus();
+      }
+    });
+  }
+
+  /* --- Toast auto-dismiss --- */
+  document.querySelectorAll('.toast').forEach(function(toast) {
+    const close = toast.querySelector('.toast__close');
+    if (close) close.addEventListener('click', () => toast.remove());
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 5000);
+  });
+})();
+</script>
 
 </body>
 </html>

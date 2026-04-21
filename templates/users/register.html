@@ -1,58 +1,75 @@
 {% extends 'base.html' %}
-
 {% load static %}
 {% load custom_filters %}
 
+{% block title %}Create account — MyChat{% endblock %}
+
 {% block content %}
-    <main>
-        <div class="user-handler">
-            <form action="{% url 'register' %}" method="post">
+<div class="auth-page">
+  <div class="auth-card" style="max-width:480px">
 
+    <!-- Logo -->
+    <div class="auth-card__logo">
+      <span class="brand-my">My</span><span class="brand-chat">Chat</span>
+      <span class="brand-dot" aria-hidden="true"></span>
+    </div>
 
-                <div class="user-box">
-                    <label>Email</label>
-                    {{ form.email|placeholder:'Please enter valid email' }}
-                    {{ form.email.errors }}
+    <h1 class="auth-card__title">Create account</h1>
+    <p class="auth-card__subtitle">Join the conversation</p>
 
-                </div>
+    <form action="{% url 'register' %}" method="post" class="auth-form" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="text" value="{{ next }}">
 
-                <div class="user-box">
-                    <label>Username</label>
-                    {{ form.username|placeholder:'Please enter your username' }}
-                    {{ form.username.errors }}
-                </div>
-                <div class="user-box">
-                    <label>Password</label>
-                    {{ form.password1|placeholder:'Please enter your password' }}
-                    {{ form.password1.errors }}
-                </div>
+      <div class="user-box">
+        <label for="{{ form.email.id_for_label }}">Email</label>
+        {{ form.email|placeholder:'you@example.com' }}
+        {{ form.email.errors }}
+      </div>
 
-                <div class="user-box">
-                    <label>Repeat Password</label>
-                    {{ form.password2|placeholder:'Please repeat your password' }}
-                    {{ form.password2.errors }}
-                </div>
+      <div class="user-box">
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username|placeholder:'Choose a username' }}
+        {{ form.username.errors }}
+      </div>
 
-                <div class="user-box">
-                    <label>First Name</label>
-                    {{ form.first_name|placeholder:'Please enter your name' }}
-                    {{ form.first_name.errors }}
-                </div>
-
-                <div class="user-box">
-                    <label>Last Name</label>
-                    {{ form.last_name|placeholder:'Please enter your surname' }}
-                    {{ form.last_name.errors }}
-                </div>
-
-
-                <input type="hidden" name="text" value="{{ next }}">
-
-                {% csrf_token %}
-                <button type="submit" class="primary-btn">
-                    Submit
-                </button>
-            </form>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4)">
+        <div class="user-box">
+          <label for="{{ form.first_name.id_for_label }}">First name</label>
+          {{ form.first_name|placeholder:'First' }}
+          {{ form.first_name.errors }}
         </div>
-    </main>
+        <div class="user-box">
+          <label for="{{ form.last_name.id_for_label }}">Last name</label>
+          {{ form.last_name|placeholder:'Last' }}
+          {{ form.last_name.errors }}
+        </div>
+      </div>
+
+      <div class="user-box">
+        <label for="{{ form.password1.id_for_label }}">Password</label>
+        {{ form.password1|placeholder:'Create a password' }}
+        {{ form.password1.errors }}
+      </div>
+
+      <div class="user-box">
+        <label for="{{ form.password2.id_for_label }}">Confirm password</label>
+        {{ form.password2|placeholder:'Repeat your password' }}
+        {{ form.password2.errors }}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:var(--s-2)">
+        Create account
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>
+        Already have an account?
+        <a href="{% url 'login' %}">Sign in</a>
+      </span>
+    </div>
+
+  </div>
+</div>
 {% endblock %}

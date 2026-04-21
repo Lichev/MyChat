@@ -1,10 +1,22 @@
-@import 'navigation.css';
-@import 'register.css';
-@import 'buttons.css';
-@import "core.css";
-@import "user-menu.css";
-@import "profile-settings.css";
-@import "search-results.css";
-@import "user-box.css";
-@import "friends.css";
-@import "chat.css";
+/*
+ * MyChat — Main stylesheet entry point
+ *
+ * Load order matters:
+ *   1. design-system  — tokens, reset, utilities
+ *   2. nav            — topnav + page-wrap
+ *   3. components     — buttons, inputs, avatars, cards, search-bar
+ *   4. chat-ui        — chat shell layout, bubbles, input bar
+ *   5. auth           — login / register pages
+ *   6. profile-ui     — profile, settings, friends, search results
+ *   7. compat         — thin shim for legacy class names used in templates
+ *                       not yet migrated (keeps the site from breaking)
+ */
+
+@import 'design-system.css';
+@import 'nav.css';
+@import 'components.css';
+@import 'chat-ui.css';
+@import 'auth.css';
+@import 'profile-ui.css';
+@import 'landing.css';
+@import 'compat.css';

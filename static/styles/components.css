@@ -1,0 +1,301 @@
+/*
+ * MyChat — Shared components
+ * Buttons, inputs, avatars, badges, cards, empty states
+ */
+
+/* ─── BUTTONS ────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-5);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition:
+    background var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-fast) var(--ease-spring),
+    color var(--dur-base);
+  text-decoration: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover {
+  background: var(--accent-bright);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--void-4);
+  color: var(--text-1);
+  border-color: var(--border-strong);
+}
+.btn-secondary:hover {
+  background: var(--void-5);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-2);
+  border-color: var(--border);
+}
+.btn-ghost:hover {
+  background: var(--void-4);
+  color: var(--text-1);
+  border-color: var(--border-strong);
+}
+
+.btn-danger {
+  background: rgba(239,68,68,0.12);
+  color: var(--error);
+  border-color: rgba(239,68,68,0.3);
+}
+.btn-danger:hover {
+  background: rgba(239,68,68,0.22);
+  box-shadow: 0 0 16px rgba(239,68,68,0.2);
+}
+
+.btn-sm {
+  padding: calc(var(--s-1) + 2px) var(--s-3);
+  font-size: var(--font-size-xs);
+}
+.btn-lg {
+  padding: var(--s-3) var(--s-8);
+  font-size: var(--font-size-md);
+}
+.btn-full { width: 100%; }
+
+/* Legacy .primary-btn mapping → btn-primary */
+.primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-6);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  transition: background var(--dur-base), box-shadow var(--dur-base), transform var(--dur-fast) var(--ease-spring);
+  text-decoration: none;
+}
+.primary-btn:hover {
+  background: var(--accent-bright);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+.primary-btn:active { transform: scale(0.97); }
+
+/* ─── FORM INPUTS ────────────────────────────────────────────────── */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.field-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.field-input {
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  background: var(--void-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  font-size: var(--font-size-base);
+  transition:
+    border-color var(--dur-base),
+    box-shadow var(--dur-base),
+    background var(--dur-base);
+  outline: none;
+}
+.field-input::placeholder { color: var(--text-3); }
+.field-input:focus {
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.18);
+  background: var(--void-4);
+}
+.field-input:hover:not(:focus) { border-color: var(--border-strong); background: var(--void-4); }
+.field-error { font-size: var(--font-size-xs); color: var(--error); }
+
+/* Django form inputs inherit field-input appearance */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+textarea,
+select {
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  background: var(--void-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  font-size: var(--font-size-base);
+  font-family: var(--font-sans);
+  transition: border-color var(--dur-base), box-shadow var(--dur-base), background var(--dur-base);
+  outline: none;
+}
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="search"]::placeholder { color: var(--text-3); }
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.18);
+  background: var(--void-4);
+}
+select { appearance: none; cursor: pointer; }
+
+/* ─── AVATAR ─────────────────────────────────────────────────────── */
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--border-strong);
+  display: block;
+}
+.avatar--xs  { width: 24px;  height: 24px; }
+.avatar--sm  { width: 36px;  height: 36px; }
+.avatar--md  { width: 48px;  height: 48px; }
+.avatar--lg  { width: 72px;  height: 72px; }
+.avatar--xl  { width: 96px;  height: 96px; }
+.avatar--2xl { width: 120px; height: 120px; }
+
+.avatar-ring {
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  display: inline-block;
+  transition: box-shadow var(--dur-base);
+}
+.avatar-ring:hover { box-shadow: var(--shadow-glow); }
+.avatar-ring .avatar { border: none; }
+
+/* Online indicator */
+.avatar-status {
+  position: relative;
+  display: inline-block;
+}
+.avatar-status::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--online);
+  border: 2px solid var(--void);
+}
+
+/* ─── BADGE ──────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px var(--s-2);
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: var(--r-full);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+.badge-accent { background: var(--accent-dim); color: var(--accent-bright); border: 1px solid rgba(124,58,237,0.25); }
+.badge-cyan   { background: var(--cyan-dim);   color: var(--cyan); border: 1px solid rgba(6,182,212,0.25); }
+.badge-online { background: rgba(16,185,129,0.15); color: var(--online); border: 1px solid rgba(16,185,129,0.3); }
+
+/* ─── CARD ───────────────────────────────────────────────────────── */
+.card {
+  background: var(--void-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  transition: border-color var(--dur-base), box-shadow var(--dur-base);
+}
+.card:hover { border-color: var(--border-strong); }
+.card-body  { padding: var(--s-6); }
+
+/* ─── EMPTY STATE ────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-4);
+  padding: var(--s-12) var(--s-8);
+  text-align: center;
+  color: var(--text-3);
+}
+.empty-state__icon {
+  font-size: 2.5rem;
+  opacity: 0.3;
+}
+.empty-state__title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-2);
+}
+.empty-state__body { font-size: var(--font-size-sm); }
+
+/* ─── DIVIDER ────────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--s-4) 0;
+}
+
+/* ─── SEARCH (sidebar) ───────────────────────────────────────────── */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  background: var(--void-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: border-color var(--dur-base), box-shadow var(--dur-base);
+}
+.search-bar:focus-within {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+}
+.search-bar svg { color: var(--text-3); flex-shrink: 0; }
+.search-bar input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-1);
+  font-size: var(--font-size-sm);
+  padding: 0;
+  box-shadow: none;
+}
+.search-bar input::placeholder { color: var(--text-3); }
+.search-bar input:focus { border-color: transparent; box-shadow: none; background: transparent; }

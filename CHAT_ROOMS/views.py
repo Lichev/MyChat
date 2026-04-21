@@ -6,22 +6,25 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from .models import PublicChatRoom
 from .forms import PublicChatRoomForm
-from django.db.models import Q, Max, F
+from django.db.models import Q, Max, F, Subquery, OuterRef
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from functools import reduce
 import operator
 from FRIEND.models import Friend
 
 UserModel = get_user_model()
 
+PAGE_SIZE = 25
+
 
 def get_public_chat_rooms():
     # Annotate each room with the maximum timestamp of its messages
     rooms_with_latest_message = PublicChatRoom.objects.annotate(
-        latest_message_timestamp=Max('message__timestamp')
+        latest_message_timestamp=Max('messages__timestamp')
     )
 
     # Order the rooms by the latest message timestamp in descending order
@@ -32,13 +35,52 @@ def get_public_chat_rooms():
     return sorted_rooms
 
 
+def get_last_messages_preview(rooms):
+    """Return a dict {room_id: last_message_preview_str} for the given rooms queryset.
+
+    Uses a single subquery per room — no N+1.
+    The preview is truncated to 80 characters for sidebar display.
+    """
+    latest_message_ids = (
+        Message.objects
+        .filter(room=OuterRef('pk'))
+        .order_by('-timestamp')
+        .values('id')[:1]
+    )
+    rooms_with_last = rooms.annotate(last_message_id=Subquery(latest_message_ids))
+
+    last_message_ids = [r.last_message_id for r in rooms_with_last if r.last_message_id]
+    messages = (
+        Message.objects
+        .filter(id__in=last_message_ids)
+        .select_related('sender')
+    )
+    msg_by_id = {m.id: m for m in messages}
+
+    preview = {}
+    for room in rooms_with_last:
+        msg = msg_by_id.get(room.last_message_id)
+        if msg:
+            content = msg.content if len(msg.content) <= 60 else msg.content[:57] + '...'
+            preview[room.id] = {
+                'sender': msg.sender.username,
+                'content': content,
+                'timestamp': msg.timestamp.isoformat(),
+            }
+        else:
+            preview[room.id] = None
+    return preview
+
+
 # Create your views here.
 class PublicChatRoomView(LoginRequiredMixin, views.TemplateView):
     template_name = 'chat_rooms/public_chat_rooms.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['public_chat_rooms'] = get_public_chat_rooms()
+        rooms = get_public_chat_rooms()
+        context['public_chat_rooms'] = rooms
+        context['last_messages'] = get_last_messages_preview(rooms)
         return context
 
 
@@ -49,18 +91,40 @@ class PublicChatRoomMessages(LoginRequiredMixin, views.ListView):
 
     def get_queryset(self):
         room_id = self.kwargs['room_id']
-        return Message.objects.filter(room_id=room_id).order_by('timestamp')[:25]
+        # select_related on sender avoids N+1 when rendering avatars/usernames per bubble
+        return (
+            Message.objects
+            .filter(room_id=room_id)
+            .select_related('sender')
+            .order_by('timestamp')[:PAGE_SIZE]
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['public_chat_rooms'] = get_public_chat_rooms()
+        rooms = get_public_chat_rooms()
+        context['public_chat_rooms'] = rooms
+        context['last_messages'] = get_last_messages_preview(rooms)
         room_id = self.kwargs['room_id']
         current_room = get_object_or_404(PublicChatRoom, id=room_id)
         context['current_room'] = current_room
+        context['room_name'] = current_room.name
         context['members_len'] = current_room.members.count()
         current_user = self.request.user
-        is_admin = current_room.is_admin(current_user)
-        context['is_admin'] = is_admin
+        context['is_admin'] = current_room.is_admin(current_user)
+
+        # Inform the template whether older messages exist so it can show a "load more" button
+        total_count = Message.objects.filter(room_id=room_id).count()
+        context['has_more_messages'] = total_count > PAGE_SIZE
+        # The oldest message in the current page — used as the cursor for the next page load.
+        # oldest_message_id is the primary cursor (ID ordering is stable); timestamp is
+        # provided as a secondary convenience value for display purposes.
+        qs = context['messages']
+        if qs:
+            context['oldest_message_id'] = qs[0].pk
+            context['oldest_message_timestamp'] = qs[0].timestamp.isoformat()
+        else:
+            context['oldest_message_id'] = None
+            context['oldest_message_timestamp'] = None
 
         return context
 
@@ -77,7 +141,9 @@ class PublicChatRoomCreateView(LoginRequiredMixin, views.CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['public_chat_rooms'] = get_public_chat_rooms()
+        rooms = get_public_chat_rooms()
+        context['public_chat_rooms'] = rooms
+        context['last_messages'] = get_last_messages_preview(rooms)
         return context
 
 
@@ -97,12 +163,16 @@ class PublicChatRoomEditView(LoginRequiredMixin, views.UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['public_chat_rooms'] = get_public_chat_rooms()
-        context['room'] = self.get_object()
-        context['is_admin'] = context['room'].is_admin(self.request.user)
+        rooms = get_public_chat_rooms()
+        context['public_chat_rooms'] = rooms
+        context['last_messages'] = get_last_messages_preview(rooms)
+        # self.object is already set by UpdateView.get() — avoids a redundant DB query.
+        context['room'] = self.object
+        context['is_admin'] = self.object.is_admin(self.request.user)
         return context
 
 
+@require_POST
 @login_required
 def add_member_to_room(request, room_id, username):
     room = get_object_or_404(PublicChatRoom, id=room_id)
@@ -123,6 +193,7 @@ def add_member_to_room(request, room_id, username):
     })
 
 
+@require_POST
 @login_required
 def remove_member_from_room(request, room_id, username):
     room = get_object_or_404(PublicChatRoom, id=room_id)
@@ -149,7 +220,16 @@ def search_chat_rooms(request, query):
         filter_conditions = [Q(**{field + '__icontains': term}) for field in search_fields for term in query_list]
         results = results.filter(reduce(operator.or_, filter_conditions))
 
-    data = list(results.values('id', 'name', 'room_picture'))
+    # Build full absolute URLs for room pictures so the JS caller doesn't need
+    # to construct media paths manually (previously this broke if MEDIA_URL changed).
+    data = [
+        {
+            'id': room.id,
+            'name': room.name,
+            'room_picture_url': request.build_absolute_uri(room.room_picture.url),
+        }
+        for room in results
+    ]
 
     return JsonResponse({'data': data})
 

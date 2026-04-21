@@ -1,39 +1,58 @@
 {% extends 'base.html' %}
-
 {% load static %}
 {% load custom_filters %}
 
+{% block title %}Sign in — MyChat{% endblock %}
+
 {% block content %}
-    <main>
-        <div class="user-handler">
-            {% if messages %}
-                <ul class="messages">
-                    {% for message in messages %}
-                        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-            <form action="{% url 'login' %}" method="post">
-                <div class="user-box">
-                    <label>Username</label>
-                    {{ form.username|placeholder:'Please enter username' }}
-                    {{ form.username.errors }}
+<div class="auth-page">
+  <div class="auth-card">
 
-                </div>
-                <div class="user-box">
-                    <label>Password</label>
-                    {{ form.password|placeholder:'Please enter password' }}
-                    {{ form.password.errors }}
-                </div>
-                {% csrf_token %}
-                <button type="submit" class="primary-btn">
-                    Submit
-                </button>
-            </form>
+    <!-- Logo -->
+    <div class="auth-card__logo">
+      <span class="brand-my">My</span><span class="brand-chat">Chat</span>
+      <span class="brand-dot" aria-hidden="true"></span>
+    </div>
 
-            <a href="{% url 'password_reset' %}">Reset password</a>
-        </div>
-    
-    
-    </main>
+    <h1 class="auth-card__title">Welcome back</h1>
+    <p class="auth-card__subtitle">Sign in to continue chatting</p>
+
+    {% if messages %}
+    <ul class="messages" role="alert">
+      {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form action="{% url 'login' %}" method="post" class="auth-form" novalidate>
+      {% csrf_token %}
+
+      <div class="user-box">
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username|placeholder:'Enter your username' }}
+        {{ form.username.errors }}
+      </div>
+
+      <div class="user-box">
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password|placeholder:'Enter your password' }}
+        {{ form.password.errors }}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:var(--s-2)">
+        Sign in
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <a href="{% url 'password_reset' %}">Forgot your password?</a>
+      <span>
+        Don't have an account?
+        <a href="{% url 'register' %}">Create one</a>
+      </span>
+    </div>
+
+  </div>
+</div>
 {% endblock %}

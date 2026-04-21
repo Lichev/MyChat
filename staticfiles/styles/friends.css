@@ -1,0 +1,17 @@
+.friend-requests-actions{
+    display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-content: center;
+}
+
+.friend-requests-actions > form {
+    width: 50%;
+  display: flex;
+  justify-content: center;
+}
+
+
+.friend-requests-actions  .accept-friend {
+    width: 80%;
+}

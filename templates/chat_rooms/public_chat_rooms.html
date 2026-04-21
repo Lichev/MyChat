@@ -1,246 +1,260 @@
 {% extends 'base.html' %}
-
 {% load static %}
+{% load custom_filters %}
+
+{% block title %}Rooms — MyChat{% endblock %}
+{% block nav_rooms_active %}active{% endblock %}
 
 {% block content %}
+<div class="chat-shell">
 
-    <main>
-        <div class="chat-menu-wrapper">
-            <section class="left-chat">
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────── -->
+  <aside class="chat-sidebar">
 
-                <div class="chat-user-info-wrapper">
-                    <!-- AVATAR -->
-                    <div class="chat-avatar-wrapper">
-                        <a href="#" class="chat-circle">
-                            <img height="120px" width="120px"
-                                 src="{{ user.profile_picture.url }}"
-                                 alt="Cloud Chen">
-                        </a>
-                    </div>
+    <!-- User identity -->
+    <div class="sidebar-identity">
+      <div class="avatar-ring">
+        <img
+          src="{{ user.profile_picture.url }}"
+          alt="{{ user.username }}"
+          class="avatar avatar--sm"
+        >
+      </div>
+      <div class="sidebar-identity__info">
+        <div class="sidebar-identity__name">{{ user.username }}</div>
+        <div class="sidebar-identity__status">Online</div>
+      </div>
+    </div>
 
-                    <!-- Username -->
-                    <div class="chat-username-wrapper">
-                        <p>{{ user.username }}</p>
-                    </div>
-                </div>
+    <!-- Room search -->
+    <div class="sidebar-search">
+      <div class="search-bar" role="search">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input
+          id="searchTerminal"
+          type="text"
+          name="query"
+          placeholder="Search rooms…"
+          autocomplete="off"
+          aria-label="Search rooms"
+        >
+      </div>
+    </div>
 
-                <div class="people-list" id="people-list">
-                    <div class="wrap-search">
-                        <form action="#" method="get">
-                            <div class="search">
-                                {% csrf_token %}
-                                <input id="searchTerminal" type="text" class="searchTerm" name="query"
-                                       placeholder="Search for room">
-                                <button type="submit" class="searchButton">
-                                    <i class="fa fa-search"></i>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+    <!-- Rooms list -->
+    <nav class="sidebar-rooms" aria-label="Chat rooms">
+      <div class="rooms-section-label">Rooms</div>
 
-                    <ul class="list">
-                        <li class="clearfix add-room">
-                            <a href="{% url 'create_room' %}">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Squared_plus.svg/800px-Squared_plus.svg.png"
-                                     alt="avatar"/>
+      <ul class="list" id="roomList">
+        <!-- Create room -->
+        <li>
+          <a href="{% url 'create_room' %}" class="room-item-create">
+            <span class="room-item-create__icon" aria-hidden="true">+</span>
+            <span>Create room</span>
+          </a>
+        </li>
 
-                                <p>Create room</p>
-                            </a>
-                        </li>
+        {% for room in public_chat_rooms %}
+        <li>
+          <a href="{% url 'public_chat_messages' room.id %}" class="room-item">
+            <img
+              src="{{ room.room_picture.url }}"
+              alt="{{ room.name }}"
+              class="room-item__img"
+            >
+            <div class="room-item__details">
+              <span class="room-item__name">{{ room.name }}</span>
+              {% with preview=last_messages|default_if_none:""|get_item:room.id %}
+              {% if preview %}
+              <span class="room-item__preview">{{ preview.sender }}: {{ preview.content|truncatechars:28 }}</span>
+              {% endif %}
+              {% endwith %}
+            </div>
+          </a>
+        </li>
+        {% empty %}
+        <li class="empty-state">
+          <p class="empty-state__title">No rooms yet</p>
+          <p class="empty-state__body">Create one to get started</p>
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
 
-                        {% for room in public_chat_rooms %}
-                            <li class="clearfix">
-                                <a href="{% url 'public_chat_messages' room.id %}">
-                                    <img src="{{ room.room_picture.url }}"
-                                         alt="avatar" style="width: 60px; height: 60px;"/>
-                                    <div class="about">
-                                        <div class="name">{{ room.name }}</div>
-                                        <div class="status">
+  </aside>
 
-                                        </div>
-                                    </div>
-                                </a>
-                            </li>
-                        {% endfor %}
+  <!-- ── MAIN CONTENT ───────────────────────────────────────────── -->
+  {% block right_chat_content %}
+  <main class="chat-main chat-dashboard" aria-label="Chat dashboard">
 
-                    </ul>
-                </div>
+    <!-- Stats pills -->
+    <div class="dashboard-pills">
+      <a href="{% url 'show_friends' %}" class="dashboard-pill">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <path d="M9.5 3.5a2 2 0 010 2.5M11 8.5c1.1.7 2 2 2 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Friends
+        <span class="dashboard-pill__count" id="friends-length">0</span>
+      </a>
+      <a href="{% url 'show_friends_request' %}" class="dashboard-pill">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M1 12c0-2.2 1.8-4 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <path d="M10 7v4M8 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Requests
+        <span class="dashboard-pill__count">0</span>
+      </a>
+      <span class="dashboard-pill">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <rect x="1" y="3" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M5 3V2a2 2 0 014 0v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Groups
+        <span class="dashboard-pill__count" id="groups-length">0</span>
+      </span>
+    </div>
 
-            </section>
+    <!-- Friends section -->
+    <section class="dashboard-section">
+      <h2 class="dashboard-section__title">Friends</h2>
+      <div class="friend-grid" id="row-list-friends">
+        <!-- Populated via JS -->
+      </div>
+    </section>
 
+    <!-- Groups section -->
+    <section class="dashboard-section">
+      <h2 class="dashboard-section__title">Groups</h2>
+      <div class="friend-grid" id="row-list-groups">
+        <!-- Populated via JS -->
+      </div>
+    </section>
 
+  </main>
+  {% endblock %}
 
-            {% block right_chat_content %}
-                <section class=right-chat>
-                    <div class="user-box-nav chat-user-nav">
-                        <a href="{% url 'show_friends' %}">
-                            <div class="mini-box">
-                                <div id="friends-length" class="mini-box-text">Friends (0)</div>
-                            </div>
-                        </a>
+</div>
 
-                        <a href="{% url 'show_friends_request' %}">
-                            <div class="mini-box">
-                                <div class="mini-box-text">Friend Requests (0)</div>
-                            </div>
-                        </a>
+<script>
+(function() {
+  'use strict';
 
-                        <a href="">
-                            <div class="mini-box">
-                                <div id="groups-length" class="mini-box-text">Groups (23)</div>
-                            </div>
-                        </a>
-                    </div>
+  /* ── Room search ── */
+  const searchInput = document.getElementById('searchTerminal');
+  const roomList    = document.getElementById('roomList');
 
-                    <hr class="separator"/>
+  function debounce(fn, delay) {
+    let t;
+    return function() {
+      const args = arguments;
+      clearTimeout(t);
+      t = setTimeout(function() { fn.apply(this, args); }.bind(this), delay);
+    };
+  }
 
-                    <div class="ui-section">
-                        <h2>Friends list</h2>
-                        <ul id="row-list-friends" class="row-list">
+  const createRoomUrl = '{% url "create_room" %}';
+  const createRoomLiHTML = '<li><a href="' + createRoomUrl + '" class="room-item-create"><span class="room-item-create__icon" aria-hidden="true">+</span><span>Create room</span></a></li>';
 
+  if (searchInput) {
+    searchInput.addEventListener('input', debounce(function() {
+      const term = this.value.trim();
+      if (!term) {
+        location.reload();
+        return;
+      }
+      const url = '{% url "search_chat_rooms" "TERM" %}'.replace('TERM', encodeURIComponent(term));
+      fetch(url, { headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+        .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data) { renderRooms(data.data); })
+        .catch(function(err) { console.error('Room search error:', err); });
+    }, 300));
+  }
 
-                        </ul>
+  function renderRooms(rooms) {
+    roomList.innerHTML = createRoomLiHTML;
+    if (!rooms.length) {
+      roomList.innerHTML += '<li class="empty-state"><p class="empty-state__title">No rooms found</p></li>';
+      return;
+    }
+    rooms.forEach(function(room) {
+      // Use DOM APIs — never string-concatenate server data into innerHTML (CWE-79).
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '/rooms/' + encodeURIComponent(room.id);
+      a.className = 'room-item';
+      const img = document.createElement('img');
+      img.src = room.room_picture_url;
+      img.alt = room.name;   // alt is an attribute assignment — safe
+      img.className = 'room-item__img';
+      const span = document.createElement('span');
+      span.className = 'room-item__name';
+      span.textContent = room.name;  // textContent prevents XSS
+      a.appendChild(img);
+      a.appendChild(span);
+      li.appendChild(a);
+      roomList.appendChild(li);
+    });
+  }
 
-                    </div>
+  /* ── Friends & Groups ── */
+  const friendsGrid  = document.getElementById('row-list-friends');
+  const groupsGrid   = document.getElementById('row-list-groups');
+  const friendsCount = document.getElementById('friends-length');
+  const groupsCount  = document.getElementById('groups-length');
 
-                    <div class="ui-section">
-                        <h2>My groups</h2>
-                        <ul id="row-list-groups" class="row-list">
+  window.addEventListener('DOMContentLoaded', function() {
+    fetch('{% url "chat_room_info" %}', { headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function(data) {
+        if (friendsCount) friendsCount.textContent = data.friends.length;
+        data.friends.forEach(function(friend) {
+          const url = '{% url "public-profile" "USERNAME" %}'.replace('USERNAME', encodeURIComponent(friend.username));
+          // Use DOM APIs — never string-concatenate server data into innerHTML (CWE-79).
+          const card = document.createElement('a');
+          card.href = url;
+          card.className = 'friend-card';
+          const img = document.createElement('img');
+          img.src = friend.avatar;
+          img.alt = friend.username;  // attribute assignment — safe
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'friend-card__name';
+          nameSpan.textContent = friend.username;  // textContent prevents XSS
+          card.appendChild(img);
+          card.appendChild(nameSpan);
+          friendsGrid.appendChild(card);
+        });
+        if (!data.friends.length && friendsGrid) {
+          friendsGrid.innerHTML = '<p style="padding:var(--s-4);color:var(--text-3);font-size:var(--font-size-sm)">No friends yet — search for users to add them</p>';
+        }
 
-                        </ul>
-
-                    </div>
-
-
-                </section>
-            {% endblock %}
-
-            <script>
-                let searchInput = document.getElementById("searchTerminal");
-
-                function debounce(fn, delay) {
-                    let timer;
-                    return function (...args) {
-                        clearTimeout(timer);
-                        timer = setTimeout(() => fn.apply(this, args), delay);
-                    };
-                }
-
-                searchInput.addEventListener('input', debounce(function () {
-                    let searchTerm = this.value;
-
-                    if (searchTerm) {
-                        let url = '{% url 'search_chat_rooms'  'searchTerm' %}'.replace('searchTerm', searchTerm)
-                        fetch(url, {
-                            method: 'GET',
-                            headers: {
-                                'X-CSRFToken': '{{ csrf_token }}'
-                            }
-                        })
-                            .then(response => {
-                                if (!response.ok) throw new Error('Search failed: ' + response.status);
-                                return response.json();
-                            })
-                            .then(data => {
-                                renderSearchResults(data.data);
-                            })
-                            .catch(error => console.error('Error:', error));
-                    }
-                }, 300));
-
-                function renderSearchResults(result) {
-                    let resultsContainer = document.querySelector('.list')
-
-                    resultsContainer.innerHTML = `
-                                            <li class="clearfix add-room">
-                            <a href="{% url 'create_room' %}">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Squared_plus.svg/800px-Squared_plus.svg.png"
-                                     alt="avatar"/>
-
-                                <p>Create room</p>
-                            </a>`
-
-                    for (let room of result) {
-                        const listItem = document.createElement('li');
-
-                        listItem.classList.add('clearfix');
-                        let url = '';
-                        listItem.innerHTML = `
-            <a href="/rooms/${room.id}">
-{#Hardcoded URL#}
-                <img src="/media/${room.room_picture}"
-                     alt="avatar" style="width: 60px; height: 60px;"/>
-                <div class="about">
-                    <div class="name">${room.name}</div>
-                    <div class="status">
-                        <!-- Add status information here if needed -->
-                    </div>
-                </div>
-            </a>
-        `;
-                        resultsContainer.appendChild(listItem);
-                    }
-
-                }
-
-                window.addEventListener("DOMContentLoaded", (event) => {
-                    let friendsUL = document.getElementById('row-list-friends')
-                    let groupsUL = document.getElementById('row-list-groups')
-
-                    fetch('{% url 'chat_room_info' %}', {
-                        method: 'GET',
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        }
-                    })
-                        .then(response => {
-                            if (!response.ok) throw new Error('Failed to load room info: ' + response.status);
-                            return response.json();
-                        })
-                        .then(data => {
-                            data.friends.forEach(friend => {
-                                let url = '{% url 'public-profile'  'USERNAME' %}'.replace('USERNAME', friend.username);
-                                const htmlString = `
-                <li class="clearfix">
-                    <a href="${url}" class="a-row">
-                        <img src="${friend.avatar}"
-                             alt="${friend.username}" style="width: 80px; height: 80px;"/>
-                        <div class="name">${friend.username}</div>
-                    </a>
-                </li>
-            `;
-
-                                friendsUL.innerHTML += htmlString;
-
-                            })
-                            let friendsLen = document.getElementById('friends-length');
-                            friendsLen.innerText = `Friends (${data.friends.length})`;
-
-                            data.groups_data.forEach(group => {
-                                const htmlString = `
-                <li class="clearfix">
-                    <a href="#" class="a-row">
-                        <img src="${group.avatar}"
-                             alt="${group.name}" style="width: 80px; height: 80px;"/>
-                        <div class="name">${group.name}</div>
-                    </a>
-                </li>
-            `;
-
-                                groupsUL.innerHTML += htmlString;
-
-                            })
-                            let groupsLen = document.getElementById('groups-length');
-                            groupsLen.innerText = `Groups (${data.groups_data.length})`;
-                        })
-                        .catch(error => console.error('Error:', error));
-                });
-
-
-            </script>
-        </div>
-
-
-    </main>
-
+        if (groupsCount) groupsCount.textContent = data.groups_data.length;
+        data.groups_data.forEach(function(group) {
+          // Use DOM APIs — never string-concatenate server data into innerHTML (CWE-79).
+          const card = document.createElement('a');
+          card.href = '#';
+          card.className = 'friend-card';
+          const img = document.createElement('img');
+          img.src = group.avatar;
+          img.alt = group.name;  // attribute assignment — safe
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'friend-card__name';
+          nameSpan.textContent = group.name;  // textContent prevents XSS
+          card.appendChild(img);
+          card.appendChild(nameSpan);
+          groupsGrid.appendChild(card);
+        });
+        if (!data.groups_data.length && groupsGrid) {
+          groupsGrid.innerHTML = '<p style="padding:var(--s-4);color:var(--text-3);font-size:var(--font-size-sm)">No groups yet</p>';
+        }
+      })
+      .catch(function(err) { console.error('Dashboard load error:', err); });
+  });
+})();
+</script>
 {% endblock %}

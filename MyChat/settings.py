@@ -52,10 +52,42 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'csp.middleware.CSPMiddleware',
 ]
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+
+
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = (
+    "'self'",
+    "'unsafe-inline'",          # TODO: remove once all inline <script> blocks are externalised
+)
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "https://cdnjs.cloudflare.com",
+    "https://fonts.googleapis.com",
+)
+CSP_FONT_SRC = (
+    "'self'",
+    "https://cdnjs.cloudflare.com",
+    "https://fonts.gstatic.com",
+)
+CSP_IMG_SRC = (
+    "'self'",
+    "data:",
+    # https://upload.wikimedia.org removed — the Wikipedia SVG used for the old
+    # "create room" button has been replaced with an inline CSS/text element.
+)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "wss:",
+    "ws:",
+)
+CSP_FRAME_ANCESTORS = ("'none'",)
 
 ROOT_URLCONF = 'MyChat.urls'
 

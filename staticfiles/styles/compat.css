@@ -1,0 +1,258 @@
+/*
+ * compat.css — backward-compatibility shims for legacy class names
+ * that may still appear in templates not yet fully migrated.
+ * These are intentionally minimal — just enough to prevent broken layout.
+ */
+
+/* Old layout wrappers */
+main {
+  display: block;
+}
+
+/* Legacy user-handler (login/register card fallback) */
+.user-handler {
+  background-color: var(--void-2);
+  color: var(--text-1);
+  width: 100%;
+  max-width: 440px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-8);
+}
+.user-handler form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  width: 100%;
+}
+
+/* Legacy separator */
+hr.separator,
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--s-4) 0;
+}
+
+/* Legacy search-box page wrapper */
+.search-box {
+  max-width: 900px;
+  margin: var(--s-8) auto;
+  padding: 0 var(--s-6);
+}
+
+/* Legacy cards-wrapper */
+.cards-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+
+/* Legacy .card within search/friends */
+.card {
+  background: var(--void-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  transition: border-color var(--dur-base);
+}
+.card:hover { border-color: var(--border-strong); }
+
+/* Legacy profile-wrapper */
+.profile-wrapper { display: flex; flex-direction: column; gap: var(--s-4); }
+.profile-wrapper-friends-list { display: flex; flex-direction: column; gap: var(--s-4); }
+.profile-body {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.profile-body img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+}
+.profile-name {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--text-1);
+}
+.profile-username {
+  font-size: var(--font-size-xs);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+.profile-info {
+  font-size: var(--font-size-sm);
+  color: var(--text-2);
+  margin-bottom: var(--s-2);
+}
+.profile-info strong { color: var(--text-1); }
+.profile-bio {
+  font-size: var(--font-size-sm);
+  color: var(--text-2);
+  line-height: 1.7;
+}
+
+/* Legacy actions row */
+.actions {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  margin-top: var(--s-3);
+}
+.actions .primary,
+.actions button.primary {
+  padding: var(--s-2) var(--s-4);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-base);
+}
+.actions .primary:hover { background: var(--accent-bright); }
+.actions .secondary,
+.actions button.secondary {
+  padding: var(--s-2) var(--s-4);
+  background: var(--void-4);
+  color: var(--text-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background var(--dur-base), color var(--dur-base);
+}
+.actions .secondary:hover { background: var(--void-5); color: var(--text-1); }
+
+/* Legacy mini-box (stats pill) */
+.user-box-nav {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  align-items: center;
+  margin: var(--s-4) 0;
+}
+.mini-box {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-2) var(--s-4);
+  background: var(--void-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  cursor: pointer;
+  transition: border-color var(--dur-base), background var(--dur-base);
+}
+.mini-box:hover { border-color: var(--border-strong); background: var(--void-4); }
+.mini-box-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-2);
+}
+.user-public-profile-form { display: inline; }
+.user-public-profile-btn {
+  padding: var(--s-2) var(--s-4);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-base);
+}
+.user-public-profile-btn:hover { background: var(--accent-bright); }
+
+/* Legacy .right-personal-card */
+.right-personal-card {
+  background: var(--void-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s-8);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Legacy profile-settings wrapper */
+.right-section-wrapper {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: var(--s-6);
+}
+.profile-settings-header {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: var(--s-4);
+}
+.profile-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  list-style: none;
+}
+.profile-settings-nav li a {
+  display: block;
+  padding: var(--s-2) var(--s-3);
+  color: var(--text-2);
+  font-size: var(--font-size-sm);
+  border-radius: var(--r-md);
+  text-decoration: none;
+  transition: background var(--dur-base), color var(--dur-base);
+}
+.profile-settings-nav li a:hover {
+  background: var(--void-4);
+  color: var(--text-1);
+}
+.profile-settings-content { padding: var(--s-4) 0; }
+.change-avatar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-5);
+}
+
+/* Legacy pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+  flex-wrap: wrap;
+}
+.pagination a {
+  padding: var(--s-2) var(--s-3);
+  background: var(--void-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-2);
+  font-size: var(--font-size-sm);
+  transition: border-color var(--dur-base), background var(--dur-base), color var(--dur-base);
+}
+.pagination a:hover { border-color: var(--border-strong); background: var(--void-4); color: var(--text-1); }
+.current-page {
+  font-size: var(--font-size-sm);
+  color: var(--text-3);
+}
+
+/* clearfix */
+.clearfix::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+/* Legacy center helper */
+.center { text-align: center; }
+
+/* Old friends-list wrapper */
+.friends-list { width: 100%; }

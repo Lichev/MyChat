@@ -1,50 +1,80 @@
 {% extends 'base.html' %}
-
 {% load static %}
 {% load custom_filters %}
 
+{% block title %}Profile — MyChat{% endblock %}
+
 {% block content %}
+<div class="profile-shell">
 
-    <main>
-        <div class="sections-wrapper">
-            <section class="left">
+  <!-- ── LEFT SIDEBAR ─────────────────────────────────────────────── -->
+  <aside class="profile-sidebar">
 
-                <div class="user-info-wrapper">
-                    <!-- AVATAR -->
-                    <div class="avatar-wrapper">
-                        <a href="#" class="circle">
-                            <img height="120px" width="120px"
-                                 src="{{ user.profile_picture.url }}"
-                                 alt="Cloud Chen">
-                        </a>
-                    </div>
+    <div class="profile-sidebar__identity">
+      <div class="avatar-ring">
+        <img
+          src="{{ user.profile_picture.url }}"
+          alt="{{ user.username }}"
+          class="avatar avatar--lg"
+          width="72" height="72"
+        >
+      </div>
+      <div class="profile-sidebar__name">{{ user.username }}</div>
+      <div class="profile-sidebar__meta">Member since {{ user.date_joined|date:"Y" }}</div>
+    </div>
 
-                    <!-- Username -->
-                    <div class="username-wrapper">
-                        <p>{{ user.username }}</p>
-                    </div>
-                </div>
+    <nav class="profile-nav" aria-label="Profile navigation">
+      <a href="{% url 'profile' request.user.pk %}" class="profile-nav__item">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M1.5 12.5C1.5 10 4 8 7 8s5.5 2 5.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        My profile
+      </a>
+      <a href="{% url 'show_friends' %}" class="profile-nav__item">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <path d="M9.5 3.5a2 2 0 010 2.5M11 8.5c1.1.7 2 2 2 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Friends
+      </a>
+      <a href="#" class="profile-nav__item">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M2 2h10v7a2 2 0 01-2 2H4a2 2 0 01-2-2V2zM5 11v1.5M9 11v1.5M3.5 13h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Messages
+      </a>
+      <a href="{% url 'public_chat_room' %}" class="profile-nav__item">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <rect x="1" y="3" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M4 7h6M4 9.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Rooms
+      </a>
 
-                <div class="user-navigation-wrapper">
-                    <ul class="user-ul">
-                        <li><a href="{% url 'show_friends' %}">Friends</a></li>
-                        <li><a href="#">Messages</a></li>
-                        <li><a href="{% url 'public_chat_room' %}">Rooms</a></li>
-                        <li><a href="{% url 'profile-settings' request.user.pk %}">Profile settings</a></li>
-                        <li><a href="">Privacy settings</a></li>
-                        <li><a href="{% url 'logout' %}" id="logout">Logout</a></li>
-                    </ul>
-                </div>
-            </section>
+      <hr class="profile-nav__sep">
 
-            <section class="right">
-                {% block right_content %}
-            
+      <a href="{% url 'profile-settings' request.user.pk %}" class="profile-nav__item">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.636 2.636l1.06 1.06M10.304 10.304l1.06 1.06M2.636 11.364l1.06-1.06M10.304 3.696l1.06-1.06" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Settings
+      </a>
+      <a href="{% url 'logout' %}" class="profile-nav__item profile-nav__item--danger">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M5.5 2H2.5A1.5 1.5 0 001 3.5v7A1.5 1.5 0 002.5 12h3M9.5 10l3-3-3-3M12.5 7h-7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Sign out
+      </a>
+    </nav>
+  </aside>
 
+  <!-- ── MAIN CONTENT ───────────────────────────────────────────────── -->
+  <main class="profile-main">
+    {% block right_content %}{% endblock %}
+  </main>
 
-                {% endblock %}
-            </section>
-        </div>
-    </main>
-
+</div>
 {% endblock %}

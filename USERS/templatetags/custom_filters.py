@@ -36,3 +36,8 @@ def type_value(value, token):
 @register.filter
 def get_length(value):
     return len(value)
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)

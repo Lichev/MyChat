@@ -1,59 +1,93 @@
 {% extends 'chat_rooms/public_chat_rooms.html' %}
-
 {% load static %}
 
 {% block right_chat_content %}
-    <section class='right-chat chat-handler'>
-    <div class="user-handler user-handler-chat">
-        <h2>Create a Chat Room</h2>
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
+<main class="chat-main" style="align-items:center;justify-content:center;padding:var(--s-8)">
 
-            <div class="user-box">
-                <label>Group name:</label>
-                {{ form.name }}
-                {% if form.name.errors %}
-                    <div class="form-errors">
-                        {{ form.name.errors }}
-                    </div>
-                {% endif %}
+  <div style="width:100%;max-width:480px">
+    <div class="profile-card">
+      <div class="profile-card__header">
+        <h1 class="profile-card__title">Create a room</h1>
+        <p class="profile-card__subtitle">Set up a new public chat room</p>
+      </div>
+      <div class="profile-card__body">
+
+        <form method="post" enctype="multipart/form-data" class="settings-form" novalidate>
+          {% csrf_token %}
+
+          <div class="user-box">
+            <label for="{{ form.name.id_for_label }}">Room name</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.name.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="user-box">
+            <label for="{{ form.room_picture.id_for_label }}">Room image</label>
+            <!-- Image preview -->
+            <div id="roomImgPreviewWrap" style="display:none;margin-bottom:var(--s-3)">
+              <img id="roomImgPreview" src="" alt="Preview" style="width:72px;height:72px;border-radius:var(--r-md);object-fit:cover;border:1px solid var(--border)">
             </div>
+            <input
+              type="file"
+              name="{{ form.room_picture.name }}"
+              id="{{ form.room_picture.id_for_label }}"
+              accept="image/*"
+              style="padding:var(--s-2);border:1px dashed var(--border-strong);border-radius:var(--r-md);background:var(--void-3);color:var(--text-2);width:100%"
+            >
+            {% if form.room_picture.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.room_picture.errors }}</div>
+            {% endif %}
+          </div>
 
-            <div class="user-box">
-                <label>Avatar:</label>
-                {{ form.room_picture }}
-                {% if form.room_picture.errors %}
-                    <div class="form-errors">
-                        {{ form.room_picture.errors }}
-                    </div>
-                {% endif %}
-            </div>
+          <div style="display:flex;flex-direction:column;gap:var(--s-3)">
+            <label style="display:flex;align-items:center;gap:var(--s-3);cursor:pointer">
+              {{ form.is_private }}
+              <span style="font-size:var(--font-size-sm);color:var(--text-2)">Private room</span>
+            </label>
+            {% if form.is_private.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.is_private.errors }}</div>
+            {% endif %}
 
-            <div class="user-box">
-                <label>Private group:</label>
-                {{ form.is_private }}
-                {% if form.is_private.errors %}
-                    <div class="form-errors">
-                        {{ form.is_private.errors }}
-                    </div>
-                {% endif %}
-            </div>
+            <label style="display:flex;align-items:center;gap:var(--s-3);cursor:pointer">
+              {{ form.for_friends_only }}
+              <span style="font-size:var(--font-size-sm);color:var(--text-2)">Friends only</span>
+            </label>
+            {% if form.for_friends_only.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.for_friends_only.errors }}</div>
+            {% endif %}
+          </div>
 
-            <div class="user-box">
-                <label>For friends only:</label>
-                {{ form.for_friends_only }}
-                {% if form.for_friends_only.errors %}
-                    <div class="form-errors">
-                        {{ form.for_friends_only.errors }}
-                    </div>
-                {% endif %}
-            </div>
-
-
-            <button type="submit" class="primary-btn">Save</button>
+          <div class="settings-form-actions">
+            <button type="submit" class="btn btn-primary">Create room</button>
+          </div>
         </form>
+
+      </div>
     </div>
-    </section>
+  </div>
+
+</main>
+
+<script>
+(function() {
+  const input   = document.getElementById('{{ form.room_picture.id_for_label }}');
+  const preview = document.getElementById('roomImgPreview');
+  const wrap    = document.getElementById('roomImgPreviewWrap');
+  if (input && preview && wrap) {
+    input.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          wrap.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+})();
+</script>
 {% endblock %}
-
-
