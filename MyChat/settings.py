@@ -69,6 +69,19 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 
+# Trusted-proxy configuration (C7 fix).
+# Set SECURE_PROXY_SSL_HEADER when terminating TLS at a reverse proxy so
+# Django knows the upstream scheme.  Leave None for direct / dev deployments.
+# Override in production env-specific settings:
+#   SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = None
+
+# IPs that are allowed to set X-Forwarded-For on behalf of real clients.
+# Empty by default — XFF is always ignored unless the direct peer is listed.
+# Populated via environment or production settings override, e.g.:
+#   TRUSTED_PROXIES = ['10.0.0.1', '10.0.0.2']
+TRUSTED_PROXIES: list = []
+
 
 # django-csp 4.0+ reads CONTENT_SECURITY_POLICY (dict) only. Legacy CSP_*
 # tuple keys are silently ignored in 4.x — do not add them back.
@@ -170,7 +183,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'USERS.ChatUser'
-LOGIN_REDIRECT_URL = reverse_lazy('public_chat_room')
+LOGIN_REDIRECT_URL = '/chat/'
 LOGOUT_REDIRECT_URL = reverse_lazy('index')
 
 _LOG_LEVEL = os.environ.get('LOG_LEVEL', 'WARNING')

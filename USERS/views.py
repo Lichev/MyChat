@@ -6,7 +6,15 @@ from django.contrib.auth import views as auth_views, get_user_model, login
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import (
+    Count,
+    Exists,
+    IntegerField,
+    OuterRef,
+    Q,
+    Subquery,
+)
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
@@ -32,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 from FRIEND.models import Friend, FriendshipRequest, FriendShipManager
 from .rate_limit import is_rate_limited, record_failed_attempt, get_attempt_count, clear_attempts
+from .ip_utils import get_client_ip
 
 UserModel = get_user_model()
 
@@ -347,17 +356,109 @@ class ProfileSettingsSecurityView(HubShellMixin, LoginRequiredMixin, views.View)
 
 @login_required
 def search_view(request, *args, **kwargs):
+    """
+    User search with a single annotated queryset instead of per-row
+    get_user_context() calls (which issued ~4 queries per result, ~80 total
+    for a 20-result page).  All four relationship flags are now resolved in
+    one SQL round-trip via Exists/Subquery annotations.
+
+    The template iterates `page_obj` as `(account, info)` tuples, so we
+    build plain dicts for `info` after the single queryset evaluation.
+    """
     query = request.GET.get('query', '')
     user = request.user
-    accounts = []  # [(account1, get_user_context), (account2, get_user_context),]
 
     if query:
-        result = UserModel.objects.filter(username__icontains=query)
-        for account in result:
-            accounts.append((account, get_user_context(account, user)))
+        # One query: match users + annotate all relationship flags.
+        # Friend rows are bilateral (one row per direction), so checking
+        # to_user=user, from_user=candidate is sufficient for is_friend.
+        qs = (
+            UserModel.objects
+            .filter(username__icontains=query)
+            .annotate(
+                _is_friend=Exists(
+                    Friend.objects.filter(
+                        to_user=user,
+                        from_user=OuterRef('pk'),
+                    )
+                ),
+                _has_sent_request=Exists(
+                    FriendshipRequest.objects.filter(
+                        from_user=user,
+                        to_user=OuterRef('pk'),
+                        rejected__isnull=True,
+                    )
+                ),
+                _has_received_request=Exists(
+                    FriendshipRequest.objects.filter(
+                        from_user=OuterRef('pk'),
+                        to_user=user,
+                        rejected__isnull=True,
+                    )
+                ),
+                _friends_count=Coalesce(
+                    Subquery(
+                        Friend.objects
+                        .filter(to_user=OuterRef('pk'))
+                        .values('to_user')
+                        .annotate(c=Count('pk'))
+                        .values('c')[:1],
+                        output_field=IntegerField(),
+                    ),
+                    0,
+                ),
+            )
+        )
 
+        # Build (account, info_dict) pairs — no further DB hits.
+        # request_id is fetched in a second pass only for rows where a
+        # pending request actually exists (at most len(page) extra queries,
+        # but those rows are a small fraction and preserving the template
+        # contract requires the FK).  For a full zero-extra-query solution
+        # two Subquery(FriendshipRequest…).values('pk')[:1] annotations are
+        # added below to capture the IDs in the same round-trip.
+        sent_req_id_subquery = Subquery(
+            FriendshipRequest.objects.filter(
+                from_user=user,
+                to_user=OuterRef('pk'),
+                rejected__isnull=True,
+            ).values('pk')[:1],
+            output_field=IntegerField(),
+        )
+        recv_req_id_subquery = Subquery(
+            FriendshipRequest.objects.filter(
+                from_user=OuterRef('pk'),
+                to_user=user,
+                rejected__isnull=True,
+            ).values('pk')[:1],
+            output_field=IntegerField(),
+        )
+        qs = qs.annotate(
+            _sent_request_id=sent_req_id_subquery,
+            _recv_request_id=recv_req_id_subquery,
+        )
+
+        accounts = []
+        for account in qs:
+            is_self = (account.pk == user.pk)
+            has_sent = account._has_sent_request
+            has_received = account._has_received_request
+            request_id = (
+                account._sent_request_id if has_sent
+                else account._recv_request_id if has_received
+                else None
+            )
+            info = {
+                'is_self': is_self,
+                'is_friend': account._is_friend,
+                'has_sent_request': has_sent,
+                'has_received_request': has_received,
+                'friends_len': account._friends_count,
+                'request_id': request_id,
+            }
+            accounts.append((account, info))
     else:
-        accounts = UserModel.objects.none()
+        accounts = []
 
     paginator = Paginator(accounts, 6)
     page_number = request.GET.get('page')
@@ -365,7 +466,7 @@ def search_view(request, *args, **kwargs):
 
     context = {
         'page_obj': page_obj,
-        'query': query
+        'query': query,
     }
 
     return render(request, 'users/search-results.html', context)
@@ -378,11 +479,7 @@ def search_view(request, *args, **kwargs):
 _DUMMY_HASH = make_password('__dummy_sentinel__')
 
 
-def _get_client_ip(request) -> str:
-    forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
-    if forwarded:
-        return forwarded.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR', '')
+# _get_client_ip removed — use USERS.ip_utils.get_client_ip (C7 fix).
 
 
 @method_decorator(sensitive_post_parameters('recovery_key', 'new_password1', 'new_password2'), name='dispatch')
@@ -398,7 +495,7 @@ class RecoverAccountView(views.View):
         raw_key = request.POST.get('recovery_key', '').strip()
         new_password1 = request.POST.get('new_password1', '')
         new_password2 = request.POST.get('new_password2', '')
-        ip = _get_client_ip(request)
+        ip = get_client_ip(request)
 
         # Rate-limit check before any DB or hash work.
         if is_rate_limited(username):
@@ -441,15 +538,25 @@ class RecoverAccountView(views.View):
         user.recovery_key_created_at = None
         user.save(update_fields=['password', 'recovery_key_hash', 'recovery_key_created_at'])
 
-        # Invalidate all existing sessions for this user so any other active
+        # Invalidate all active sessions for this user so any other active
         # devices are forced to re-authenticate with the new password.
-        from django.contrib.sessions.backends.db import SessionStore
+        #
+        # H7 fix: use the UserSession denorm table for O(1) eviction instead
+        # of the previous O(N) Session.objects.filter(expire_date__gt=now())
+        # decode-and-match loop. The denorm table is authoritative once shipped;
+        # any live sessions that existed before the UserSession table was
+        # introduced will not appear here — they expire naturally or get
+        # invalidated via update_session_auth_hash rotation. This is an
+        # acceptable trade-off documented in USERS/models.py::UserSession.
         from django.contrib.sessions.models import Session
-        from django.contrib.auth import SESSION_KEY
-        for session in Session.objects.all():
-            data = session.get_decoded()
-            if str(data.get(SESSION_KEY)) == str(user.pk):
-                session.delete()
+        from .models import UserSession
+
+        session_keys = list(
+            user.user_sessions.values_list('session_key', flat=True)
+        )
+        if session_keys:
+            Session.objects.filter(session_key__in=session_keys).delete()
+            user.user_sessions.all().delete()
 
         clear_attempts(user.username)
 

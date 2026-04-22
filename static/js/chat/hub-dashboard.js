@@ -333,6 +333,12 @@
               }
               incrementCount(friendsCount);
             }
+            /* Tighten the bootstrap gap: accepting a friendship means our
+               browser is active and a peer may imminently DM us. Re-invoke
+               crypto-bootstrap idempotently (no-op if keys already published). */
+            if (window.PM_CRYPTO_BOOTSTRAP && typeof window.PM_CRYPTO_BOOTSTRAP.runIfNeeded === 'function') {
+              window.PM_CRYPTO_BOOTSTRAP.runIfNeeded();
+            }
           })
           .catch(function(err) { console.error('Accept error:', err); });
 

@@ -309,6 +309,12 @@
 
     // ACK successful decryption — server deletes the envelope.
     window.PM_SOCKET.sendAck(data.envelope_id, false);
+
+    // Inbound delivery from a peer who has now registered keys means our
+    // earlier "waiting for peer" state is over. Hide the banner. A pending
+    // outbound retry (if any) will still fire and drain _pendingQueue via
+    // a fresh X3DH handshake against the peer's now-published bundle.
+    _hideWaitingForPeer();
   }
 
   // ── Error display ──────────────────────────────────────────────────
@@ -452,13 +458,25 @@
       }
     });
 
+    window.PM_SOCKET.on('peer.registered', function (data) {
+      // Peer just bootstrapped — if we were waiting to send, retry now
+      // instead of waiting for the backoff timer (10-60s).
+      var registeredPeerId = data && data.payload && data.payload.peer_id;
+      if (String(registeredPeerId) !== String(_peerUid)) return;
+      if (_pendingQueue.length === 0) return;
+      _cancelRetry();
+      _initiateOutboundSession();
+    });
+
     window.PM_SOCKET.on('error', function (data) {
-      console.error('[PM_SOCKET] server error:', data.code, data.detail);
       if (data && data.code === 'prekey_not_found') {
+        console.info('[PM_SOCKET] peer not bootstrapped yet — waiting and retrying');
         _unwindPendingBundleWait();
         _showWaitingForPeer();
         _scheduleRetry();
+        return;
       }
+      console.error('[PM_SOCKET] server error:', data.code, data.detail);
     });
 
     // 8. If new account: register identity keys + OTPKs with server on first connect.

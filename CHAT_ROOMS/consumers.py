@@ -7,6 +7,7 @@ from asgiref.sync import sync_to_async
 from django.contrib.auth import get_user_model
 
 from .models import PublicChatRoom, Message
+from .services import can_user_access_room
 
 UserModel = get_user_model()
 logger = logging.getLogger(__name__)
@@ -20,6 +21,14 @@ _MAX_MESSAGE_LENGTH = 2000
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
+    @sync_to_async
+    def _get_room_for_connect(self, room_name):
+        """Return the PublicChatRoom for the given name, or None if not found."""
+        try:
+            return PublicChatRoom.objects.get(name=room_name)
+        except PublicChatRoom.DoesNotExist:
+            return None
+
     async def connect(self):
         user = self.scope["user"]
         if not user.is_authenticated:
@@ -30,6 +39,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         self.room_group_name = self.get_group_name(self.room_name)
         # Rate-limit state: timestamps of recent messages for this connection.
         self._message_timestamps = []
+
+        # C1 fix: verify the user is allowed to access this room before accepting.
+        room = await self._get_room_for_connect(self.room_name)
+        if room is None or not await sync_to_async(can_user_access_room)(user, room):
+            await self.close(code=4003)
+            return
 
         await self.channel_layer.group_add(
             self.room_group_name,

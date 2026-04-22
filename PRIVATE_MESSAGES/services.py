@@ -102,7 +102,48 @@ def register_identity(
         len(ik_curve),
         len(ik_ed),
     )
+
+    if not is_rotation:
+        transaction.on_commit(lambda: _notify_friends_peer_registered(user_id))
+
     return ik, is_rotation
+
+
+def _notify_friends_peer_registered(user_id: int) -> None:
+    """Fan out `pm_peer_registered` to each friend's channel group.
+
+    Called only on first-publish (is_rotation=False). Rotations already
+    trigger `pm_key_rotate_alarm` via the consumer, which is a stronger
+    signal (it forces session replacement, not just retry). This push
+    lets senders who are currently in the 10-60s retry-backoff window
+    cancel the timer and retry immediately once the peer's keys exist.
+    Idempotent: if the friend has no open WS, the channel layer drops
+    the event silently.
+    """
+    from channels.layers import get_channel_layer
+    from asgiref.sync import async_to_sync
+    from FRIEND.models import Friend
+
+    channel_layer = get_channel_layer()
+    if channel_layer is None:
+        return
+
+    peer_ids = list(
+        Friend.objects.filter(from_user_id=user_id).values_list("to_user_id", flat=True)
+    )
+    for peer_id in peer_ids:
+        try:
+            async_to_sync(channel_layer.group_send)(
+                f"pm_user_{peer_id}",
+                {"type": "pm_peer_registered", "payload": {"peer_id": user_id}},
+            )
+        except Exception as exc:
+            logger.warning(
+                "pm.peer_registered_fanout_failed: user_id=%s peer_id=%s err=%s",
+                user_id,
+                peer_id,
+                exc,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -183,9 +224,20 @@ def get_otpk_pool_size(user_id: int) -> int:
 # ---------------------------------------------------------------------------
 
 
+@transaction.atomic
 def prekey_bundle_for(user_id: int) -> Optional[dict]:
     """
     Assemble the prekey bundle for user_id.
+
+    Decorated with @transaction.atomic so that the inner consume_one_time_prekey
+    call (which has its own atomic decorator) runs as a SAVEPOINT within this
+    outer transaction. If bundle assembly raises after the OTPK has been consumed
+    (e.g. SPK lookup fails), the outer transaction rolls back — including the
+    SAVEPOINT — and the OTPK is NOT permanently burned.
+
+    Without this decorator, consume_one_time_prekey's own atomic block commits
+    immediately, so any exception raised during subsequent assembly would burn
+    an OTPK with no corresponding bundle delivered to the requester.
 
     Consumes one OTPK atomically (falls back to None if pool is empty).
     Returns None if the user has no registered identity key.
@@ -279,6 +331,10 @@ def store_envelope(
     return envelope
 
 
+_ENVELOPE_FETCH_CHUNK = 100   # rows streamed per iterator step
+_ENVELOPE_DELETE_BATCH = 500  # max IDs per DELETE IN (…)
+
+
 @transaction.atomic
 def fetch_and_delete_envelopes_for(user_id: int) -> list[dict]:
     """
@@ -288,37 +344,63 @@ def fetch_and_delete_envelopes_for(user_id: int) -> list[dict]:
     are never lost between fetch and delete (crash-before-ACK is handled
     by the WS consumer's reconnect re-delivery, not here).
 
+    Memory-safe implementation — uses .iterator(chunk_size=100) instead of
+    list() so that a recipient with a large backlog (e.g. thousands of
+    envelopes) does not materialise the entire queryset into Python memory and
+    risk OOMing the ASGI worker.
+
+    Ordering is preserved: .order_by("created_at") is applied before the
+    iterator, so envelopes are yielded oldest-first. Within each 100-row
+    chunk and across chunks the Olm ratchet receives messages in the correct
+    sequence. (Olm handles occasional out-of-order delivery by design, so
+    this is belt-and-suspenders.)
+
+    Trade-off: chunking means the delete is not strictly "all-or-nothing" —
+    if the worker crashes mid-iteration some chunks will already be deleted
+    while later ones remain. This is the same trade-off as before (the prior
+    implementation also deleted all rows in one shot after full materialisation,
+    so a mid-delivery crash left envelopes undelivered). Delete-on-ack for the
+    offline path is a separate product decision tracked in the plan deferrals.
+
     Returns a list of dicts suitable for JSON serialisation:
     [{"envelope_id": str, "sender_id": int, "ciphertext_b64": str,
       "message_type": int, "otpk_id_used": str|None, "created_at": str}, ...]
     """
-    qs = list(
+    qs = (
         EncryptedEnvelope.objects.filter(recipient_id=user_id)
         .select_for_update()
         .order_by("created_at")
     )
-    if not qs:
-        return []
 
-    results = [
-        {
-            "envelope_id": str(e.pk),
-            "sender_id": e.sender_id,
-            "ciphertext_b64": e.ciphertext_b64,
-            "message_type": e.message_type,
-            "otpk_id_used": e.otpk_id_used,
-            "created_at": e.created_at.isoformat(),
-        }
-        for e in qs
-    ]
-    ids = [e.pk for e in qs]
-    EncryptedEnvelope.objects.filter(pk__in=ids).delete()
+    results: list[dict] = []
+    id_batch: list = []
 
-    logger.info(
-        "pm.envelopes_fetched_deleted: recipient_id=%s count=%d",
-        user_id,
-        len(results),
-    )
+    for e in qs.iterator(chunk_size=_ENVELOPE_FETCH_CHUNK):
+        results.append(
+            {
+                "envelope_id": str(e.pk),
+                "sender_id": e.sender_id,
+                "ciphertext_b64": e.ciphertext_b64,
+                "message_type": e.message_type,
+                "otpk_id_used": e.otpk_id_used,
+                "created_at": e.created_at.isoformat(),
+            }
+        )
+        id_batch.append(e.pk)
+        if len(id_batch) >= _ENVELOPE_DELETE_BATCH:
+            EncryptedEnvelope.objects.filter(pk__in=id_batch).delete()
+            id_batch = []
+
+    # Delete any remaining IDs that did not fill a full batch.
+    if id_batch:
+        EncryptedEnvelope.objects.filter(pk__in=id_batch).delete()
+
+    if results:
+        logger.info(
+            "pm.envelopes_fetched_deleted: recipient_id=%s count=%d",
+            user_id,
+            len(results),
+        )
     return results
 
 
@@ -368,6 +450,36 @@ def get_or_create_session(user_a_id: int, user_b_id: int) -> tuple[PrivateSessio
     """
     lo, hi = (user_a_id, user_b_id) if user_a_id < user_b_id else (user_b_id, user_a_id)
     return PrivateSession.objects.get_or_create(user_a_id=lo, user_b_id=hi)
+
+
+# ---------------------------------------------------------------------------
+# Session peer helpers
+# ---------------------------------------------------------------------------
+
+
+def active_session_peer_ids_for(user_id: int) -> list[int]:
+    """
+    Return the list of peer user IDs that share a PrivateSession with user_id.
+
+    A "session" exists whenever two users have previously initiated X3DH key
+    exchange — it does not require an active WebSocket connection. This is used
+    by _handle_key_rotate to fan out pm_key_rotate_alarm to all peers who hold
+    Olm session state derived from the now-rotated identity key.
+
+    The rotating user themselves is excluded from the result (they should not
+    receive their own alarm).
+
+    Returns a deduplicated list; order is unspecified.
+    """
+    from django.db.models import Q
+
+    peer_ids: set[int] = set()
+    for row in PrivateSession.objects.filter(
+        Q(user_a_id=user_id) | Q(user_b_id=user_id)
+    ).values("user_a_id", "user_b_id"):
+        peer = row["user_b_id"] if row["user_a_id"] == user_id else row["user_a_id"]
+        peer_ids.add(peer)
+    return list(peer_ids)
 
 
 # ---------------------------------------------------------------------------

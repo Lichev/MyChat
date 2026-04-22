@@ -2,6 +2,9 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Length
+
+models.TextField.register_lookup(Length)
 
 
 class IdentityKey(models.Model):
@@ -144,6 +147,12 @@ class EncryptedEnvelope(models.Model):
         db_table = "pm_encryptedenvelope"
         verbose_name = "Encrypted Envelope"
         verbose_name_plural = "Encrypted Envelopes"
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(ciphertext_b64__length__lte=65536),
+                name='pm_envelope_ciphertext_len_bound',
+            ),
+        ]
 
     def __str__(self):
         return f"EncryptedEnvelope(id={self.pk}, sender_id={self.sender_id})"

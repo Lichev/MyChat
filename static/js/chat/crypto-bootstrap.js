@@ -32,6 +32,10 @@
     try { return JSON.parse(el.textContent); } catch (e) { return null; }
   }
 
+  // Module-scope in-flight promise: prevents concurrent duplicate runs when
+  // runIfNeeded() is called from multiple call sites before bootstrap completes.
+  var _inFlight = null;
+
   async function runBootstrap() {
     var registerUrl = readJson('hub-ctx-register-identity-url');
     var csrf        = readJson('hub-ctx-csrf');
@@ -115,6 +119,24 @@
   }
 
   /**
+   * runIfNeeded — idempotent, concurrency-safe entry point.
+   *
+   * If bootstrap has already completed (IndexedDB flag set) this is a
+   * synchronous no-op via the flag check inside runBootstrap.
+   * If a run is already in flight, the same promise is returned so
+   * multiple concurrent callers all wait on the single execution.
+   * Resets _inFlight after completion so a future genuine retry can re-run.
+   */
+  function runIfNeeded() {
+    if (_inFlight) return _inFlight;
+    _inFlight = runBootstrap().finally(function () { _inFlight = null; });
+    return _inFlight;
+  }
+
+  // Expose so hub-dashboard.js (and any future call site) can retrigger.
+  window.PM_CRYPTO_BOOTSTRAP = { runIfNeeded: runIfNeeded };
+
+  /**
    * Schedule runBootstrap to run after the hub's own JS has had a chance to
    * render the page. requestIdleCallback ensures we don't contend with the
    * dashboard paint; the 3000ms timeout is a hard backstop so we still run
@@ -123,9 +145,9 @@
    */
   function schedule() {
     if (typeof window.requestIdleCallback === 'function') {
-      window.requestIdleCallback(runBootstrap, { timeout: 3000 });
+      window.requestIdleCallback(runIfNeeded, { timeout: 3000 });
     } else {
-      setTimeout(runBootstrap, 500);
+      setTimeout(runIfNeeded, 500);
     }
   }
 

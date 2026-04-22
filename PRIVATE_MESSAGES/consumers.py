@@ -95,6 +95,19 @@ class PrivateMessageConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4002)
             return
 
+        # H6 fix: connect-level friendship gate — reject non-friends before
+        # accepting the WebSocket to avoid wasting a channel-layer slot.
+        # Per-handler friendship gates (in _assert_friends) are kept as
+        # defence-in-depth; this is an early fast-path rejection only.
+        if not await self._check_friendship():
+            logger.info(
+                "pm.connect_rejected: user_id=%s peer_id=%s not_friends",
+                self.user_id,
+                self.peer_id,
+            )
+            await self.close(code=4003)
+            return
+
         # Join the authenticated user's own channel group so peers can push.
         await self.channel_layer.group_add(self.my_group, self.channel_name)
         await self.accept()
@@ -363,6 +376,10 @@ class PrivateMessageConsumer(AsyncJsonWebsocketConsumer):
 
     async def _handle_identity_fingerprint(self, content: dict):
         """Client requests the peer's public identity key for safety-number derivation."""
+        # C5 fix: only friends may exchange identity key material.
+        if not await self._assert_friends():
+            return
+
         ok, remaining, retry_after = rl.check("identity.fingerprint", self.user_id)
         if not ok:
             await self._send_rate_limit_error(retry_after)
@@ -419,17 +436,36 @@ class PrivateMessageConsumer(AsyncJsonWebsocketConsumer):
         # Only broadcast the key-change alarm on a GENUINE rotation — i.e., when a
         # prior identity key existed AND the new key differs from it. First publishes
         # and idempotent re-publishes of the same key produce no alarm.
+        #
+        # H1 fix: fan out to ALL peers that hold PrivateSession state with this user,
+        # not just the single peer this socket happens to be connected to. Peers who
+        # are not currently connected will receive the alarm when they reconnect via
+        # the channel-layer group (they must re-join their own group on connect).
+        #
+        # Amplification concern: a rotating user could trigger N channel-layer group
+        # sends. The existing key.rotate rate limit (1 per 6 hours) bounds this to
+        # one fan-out per user per 6-hour window regardless of peer count — not an
+        # exploitable amplification vector. Cybersec sign-off obtained before commit
+        # (see orchestrator escalation note in plan-curried-otter.md H1).
         if is_rotation:
-            await self.channel_layer.group_send(
-                _user_group(self.peer_id),
-                {
-                    "type": "pm_key_rotate_alarm",
-                    "payload": {
-                        "user_id": self.user_id,
-                        "reason": "key_rotation",
-                    },
-                },
+            peer_ids = await sync_to_async(services.active_session_peer_ids_for)(
+                self.user_id
             )
+            alarm_payload = {
+                "type": "pm_key_rotate_alarm",
+                "payload": {
+                    "user_id": self.user_id,
+                    "reason": "key_rotation",
+                },
+            }
+            for peer_id in peer_ids:
+                # Exclude the rotating user themselves (active_session_peer_ids_for
+                # already excludes self, but be explicit as defence-in-depth).
+                if peer_id != self.user_id:
+                    await self.channel_layer.group_send(
+                        _user_group(peer_id),
+                        alarm_payload,
+                    )
 
         await self.send_json({"type": "key.rotate.ack"})
 
@@ -460,6 +496,13 @@ class PrivateMessageConsumer(AsyncJsonWebsocketConsumer):
         """Notify client that a peer's keys changed or OTPK pool is low."""
         await self.send_json({
             "type": "pm.key_rotate_alarm",
+            "payload": event.get("payload", {}),
+        })
+
+    async def pm_peer_registered(self, event: dict):
+        """Peer just bootstrapped — client can retry X3DH immediately."""
+        await self.send_json({
+            "type": "peer.registered",
             "payload": event.get("payload", {}),
         })
 

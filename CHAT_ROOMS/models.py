@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -37,9 +38,6 @@ class PublicChatRoom(models.Model):
     def __str__(self):
         return self.name
 
-    def delete_room(self):
-        self.delete()
-
     def is_admin(self, user):
         """Check if the user is an admin of the room."""
         return self.admins.filter(pk=user.id).exists() or self.creator == user
@@ -60,11 +58,11 @@ class Message(models.Model):
         return self.content
 
     def can_delete(self, user):
-        return user == self.sender or user == self.room.creator or user in self.room.admins.all()
-
-    def delete_message(self):
-        # Logic to delete the message
-        self.delete()
+        return (
+            user == self.sender
+            or user == self.room.creator
+            or self.room.admins.filter(pk=user.pk).exists()
+        )
 
 
 # Message Replies: Introduce the ability for users to reply to specific messages within the chat room.
@@ -78,10 +76,30 @@ class MessageReply(models.Model):
         return self.content
 
 
+def attachment_upload_to(instance, filename):
+    """
+    Shard attachment storage by year/month/room to avoid flat-directory
+    hotspots.  Returns:  attachments/<yyyy>/<mm>/<room_id>/<uuid32>.<ext>
+
+    Changing upload_to from a string to a callable does NOT require a DB
+    migration — Django stores the per-instance path in the FileField column,
+    so old records (under media/message_attachments/) continue to resolve
+    correctly while new uploads use the sharded layout.
+    """
+    import os
+    import uuid
+    from django.utils import timezone as _tz
+
+    ext = os.path.splitext(filename)[1].lower()
+    now = _tz.now()
+    room_id = getattr(instance.message, 'room_id', 'orphan')
+    return f'attachments/{now:%Y/%m}/{room_id}/{uuid.uuid4().hex}{ext}'
+
+
 # Extend the Message model to support attachments such as images, files, or multimedia content.
 class MessageAttachment(models.Model):
     message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='attachments')
-    file = models.FileField(upload_to='message_attachments/')
+    file = models.FileField(upload_to=attachment_upload_to)
 
     # You can add additional fields here, such as description, file type, etc.
 
@@ -104,13 +122,46 @@ class MessageEditLog(models.Model):
 
 # Message Deletion Logs: Enhance message deletion functionality by logging deletion events. This involves creating a
 # separate model to store deletion logs, including information about the deleted message, the user who deleted it,
-# and the timestamp
+# and the timestamp.
+#
+# H5 fix: changed message FK to SET_NULL so the audit row survives when the
+# message itself is deleted — previously CASCADE destroyed the audit record
+# at the exact moment it mattered most. Denormalised snapshot fields preserve
+# the original message identity, sender, and room even after the message row
+# is gone, keeping the audit trail meaningful.
 class MessageDeletionLog(models.Model):
-    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='deletion_logs')
+    # SET_NULL so deleting the message row does NOT cascade-delete the audit row.
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='deletion_logs',
+    )
     deleter = models.ForeignKey(UserModel, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
 
-    # You can add additional fields here, such as reason for deletion, etc.
+    # Denormalised snapshot fields — written at create time and never mutated.
+    # These preserve audit information after the message FK is nulled out.
+    message_id_snapshot = models.PositiveIntegerField(
+        db_index=True,
+        help_text="Original message PK, preserved after message deletion.",
+    )
+    message_sender_snapshot = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='+',
+        help_text="Original message sender, preserved after message deletion.",
+    )
+    message_room_snapshot = models.ForeignKey(
+        'PublicChatRoom',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='+',
+        help_text="Room the message was in, preserved after message deletion.",
+    )
 
     def __str__(self):
-        return f"{self.deleter.username} deleted message {self.message.id}"
+        return (
+            f"{self.deleter.username} deleted message {self.message_id_snapshot}"
+        )

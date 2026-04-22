@@ -7,13 +7,13 @@ from django.shortcuts import redirect
 from .forms import PublicChatRoomForm
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from functools import reduce
 import operator
-from CHAT_ROOMS.services import get_public_chat_rooms, get_last_messages_preview
+from CHAT_ROOMS.services import get_public_chat_rooms, get_last_messages_preview, can_user_access_room
 
 UserModel = get_user_model()
 
@@ -28,6 +28,9 @@ class PublicChatRoomMessages(HubShellMixin, LoginRequiredMixin, views.ListView):
 
     def get_queryset(self):
         room_id = self.kwargs['room_id']
+        current_room = get_object_or_404(PublicChatRoom, id=room_id)
+        if not can_user_access_room(self.request.user, current_room):
+            raise Http404
         # Fetch the most recent PAGE_SIZE messages (newest-first), then reverse so the
         # template renders them oldest-first (top → bottom), matching WebSocket append order.
         msgs = list(
@@ -41,11 +44,13 @@ class PublicChatRoomMessages(HubShellMixin, LoginRequiredMixin, views.ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        rooms = get_public_chat_rooms()
+        rooms = get_public_chat_rooms(self.request.user)
         context['public_chat_rooms'] = rooms
         context['last_messages'] = get_last_messages_preview(rooms)
         room_id = self.kwargs['room_id']
         current_room = get_object_or_404(PublicChatRoom, id=room_id)
+        if not can_user_access_room(self.request.user, current_room):
+            raise Http404
         context['current_room'] = current_room
         context['room_name'] = current_room.name
         context['members_len'] = current_room.members.count()
@@ -82,7 +87,7 @@ class PublicChatRoomCreateView(HubShellMixin, LoginRequiredMixin, views.CreateVi
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        rooms = get_public_chat_rooms()
+        rooms = get_public_chat_rooms(self.request.user)
         context['public_chat_rooms'] = rooms
         context['last_messages'] = get_last_messages_preview(rooms)
         return context
@@ -101,7 +106,7 @@ class PublicChatRoomEditView(HubShellMixin, LoginRequiredMixin, views.UpdateView
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        rooms = get_public_chat_rooms()
+        rooms = get_public_chat_rooms(self.request.user)
         context['public_chat_rooms'] = rooms
         context['last_messages'] = get_last_messages_preview(rooms)
         # self.object is already set by UpdateView.get() — avoids a redundant DB query.
@@ -114,6 +119,9 @@ class PublicChatRoomEditView(HubShellMixin, LoginRequiredMixin, views.UpdateView
 @login_required
 def add_member_to_room(request, room_id, username):
     room = get_object_or_404(PublicChatRoom, id=room_id)
+    # Gate: requester must be able to access this room (not leak private room existence).
+    if not can_user_access_room(request.user, room):
+        raise Http404
     user = get_object_or_404(UserModel, username=username)
 
     # Only the joining user may add themselves, or an admin may add others.
@@ -121,7 +129,6 @@ def add_member_to_room(request, room_id, username):
         return JsonResponse({'status': 'Forbidden'}, status=403)
 
     room.members.add(user)
-    room.save()
 
     members_count = room.members.count()
 
@@ -135,6 +142,9 @@ def add_member_to_room(request, room_id, username):
 @login_required
 def remove_member_from_room(request, room_id, username):
     room = get_object_or_404(PublicChatRoom, id=room_id)
+    # Gate: requester must be able to access this room.
+    if not can_user_access_room(request.user, room):
+        raise Http404
     user = get_object_or_404(UserModel, username=username)
 
     # Only the leaving user may remove themselves, or an admin may remove others.
@@ -142,7 +152,6 @@ def remove_member_from_room(request, room_id, username):
         return JsonResponse({'status': 'Forbidden'}, status=403)
 
     room.members.remove(user)
-    room.save()
 
     return JsonResponse({'status': 'Member removed successfully'})
 
@@ -150,8 +159,10 @@ def remove_member_from_room(request, room_id, username):
 @login_required
 def search_chat_rooms(request, query):
     search_fields = ['name']
+    user = request.user
 
-    results = PublicChatRoom.objects.all()
+    # Start from the user-scoped base (already excludes inaccessible private rooms).
+    results = get_public_chat_rooms(user)
 
     if query:
         query_list = query.split()

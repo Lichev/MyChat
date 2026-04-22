@@ -14,6 +14,21 @@ check(action, user_id) -> tuple[bool, int, int]
     ok          – True if the action is allowed (counter incremented)
     remaining   – requests remaining in this window (0 when denied)
     retry_after – seconds until the window resets (0 when ok)
+
+TTL-race fix
+------------
+The naive pattern ``cache.add(key, 0, ttl); cache.incr(key)`` has a race:
+if the key expires between add and incr, incr re-creates it without a TTL,
+producing an immortal counter.
+
+Fix strategy (chosen at import time):
+  • django-redis available  → use a single atomic SETNX-with-expiry call on
+    the raw Redis client, then incr. Both ops happen before any TTL can expire.
+  • Other backends (locmem) → incr first; if the return value is 1 (key was
+    just created by incr), immediately set the TTL via cache.expire(). On
+    backends that raise ValueError when the key is absent, fall back to
+    cache.set(key, 1, ttl). The window between incr and expire is tiny and
+    the worst-case outcome is one extra allowed request, not an immortal key.
 """
 
 import logging
@@ -23,6 +38,14 @@ import time
 from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
+
+# Feature-detect django-redis at import time so we can use the atomic
+# SETNX+TTL path when it is available.
+try:
+    from django_redis import get_redis_connection as _get_redis_connection  # noqa: F401
+    _DJANGO_REDIS_AVAILABLE = True
+except ImportError:
+    _DJANGO_REDIS_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
 # Per-action configuration: (max_requests, window_seconds)
@@ -68,9 +91,28 @@ def check(action: str, user_id: int) -> tuple[bool, int, int]:
     ttl = math.ceil(bucket_end - now)
 
     try:
-        # cache.add sets the key only if absent, establishing the TTL.
-        cache.add(key, 0, ttl)
-        count = cache.incr(key)
+        if _DJANGO_REDIS_AVAILABLE:
+            # Atomic path: SETNX sets key=1 with TTL only if absent, then incr.
+            # Both operations complete before any TTL window can expire, eliminating
+            # the race between cache.add and cache.incr seen in the naive pattern.
+            rc = cache.client.get_client()
+            rc.set(key, 1, ex=ttl, nx=True)
+            count = rc.incr(key)
+        else:
+            # Fallback path for locmem / other backends.
+            # incr() creates the key if absent on some backends (returns 1) or
+            # raises ValueError if the key is missing on others.
+            try:
+                count = cache.incr(key)
+                if count == 1:
+                    # Key was just created by incr without a TTL — stamp it now.
+                    # Tiny window here: if it expires before expire() fires, the
+                    # next request gets a fresh key (no immortal counter).
+                    cache.expire(key, ttl)
+            except ValueError:
+                # Key was absent; create it with the TTL explicitly.
+                cache.set(key, 1, ttl)
+                count = 1
     except Exception as exc:  # noqa: BLE001
         logger.warning(
             "pm_ratelimit: cache error for action=%r user_id=%s — failing open: %s",
