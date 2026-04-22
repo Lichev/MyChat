@@ -408,7 +408,7 @@ class PrivateMessageConsumer(AsyncJsonWebsocketConsumer):
             await self._send_error("invalid_payload", "SPK field too long.")
             return
 
-        await sync_to_async(services.register_identity)(
+        _, is_rotation = await sync_to_async(services.register_identity)(
             user_id=self.user_id,
             ik_curve=ik_curve,
             ik_ed=ik_ed,
@@ -416,17 +416,20 @@ class PrivateMessageConsumer(AsyncJsonWebsocketConsumer):
             spk_sig=spk_sig,
         )
 
-        # Notify the peer that this user's keys have changed (key-change alarm).
-        await self.channel_layer.group_send(
-            _user_group(self.peer_id),
-            {
-                "type": "pm_key_rotate_alarm",
-                "payload": {
-                    "user_id": self.user_id,
-                    "reason": "key_rotation",
+        # Only broadcast the key-change alarm on a GENUINE rotation — i.e., when a
+        # prior identity key existed AND the new key differs from it. First publishes
+        # and idempotent re-publishes of the same key produce no alarm.
+        if is_rotation:
+            await self.channel_layer.group_send(
+                _user_group(self.peer_id),
+                {
+                    "type": "pm_key_rotate_alarm",
+                    "payload": {
+                        "user_id": self.user_id,
+                        "reason": "key_rotation",
+                    },
                 },
-            },
-        )
+            )
 
         await self.send_json({"type": "key.rotate.ack"})
 

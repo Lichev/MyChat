@@ -32,11 +32,13 @@
 
 (function (global) {
   const DB_NAME         = 'private_chat';
-  const DB_VERSION      = 4;           // bumped to v4 to add pm_messages store
+  const DB_VERSION      = 5;           // bumped to v5 to add pm_bootstrap store
   const STORE_ACCOUNTS  = 'olm_accounts';
   const STORE_SESSIONS  = 'olm_sessions';
   const STORE_MASTER    = 'pm_master_key';
   const STORE_MESSAGES  = 'pm_messages';
+  const STORE_BOOTSTRAP = 'pm_bootstrap';
+  const BOOTSTRAP_FLAG_KEY = 'keys_published_v1';
   const MASTER_KEY_KEY  = 'master_key'; // string literal key inside STORE_MASTER
   const ACCOUNT_KEY     = 'self';
   const PICKLE_INFO     = 'MYCHAT_OLM_PICKLE_v1';
@@ -59,8 +61,8 @@
   }
 
   /**
-   * Open (or upgrade) the IndexedDB database to version 4.
-   * onupgradeneeded creates all four stores if missing.
+   * Open (or upgrade) the IndexedDB database to version 5.
+   * onupgradeneeded creates all five stores if missing.
    */
   function _openDb() {
     return new Promise(function (resolve, reject) {
@@ -78,6 +80,9 @@
         }
         if (!db.objectStoreNames.contains(STORE_MESSAGES)) {
           db.createObjectStore(STORE_MESSAGES);
+        }
+        if (!db.objectStoreNames.contains(STORE_BOOTSTRAP)) {
+          db.createObjectStore(STORE_BOOTSTRAP);
         }
       };
       req.onsuccess = function (e) { resolve(e.target.result); };
@@ -467,6 +472,36 @@
   }
 
   /**
+   * Check whether the hub-level crypto bootstrap has already run in this
+   * browser. Returns true if the flag is set, false otherwise.
+   */
+  async function getBootstrapFlag() {
+    _requireUnlocked();
+    return new Promise(function (resolve, reject) {
+      const tx = _db.transaction(STORE_BOOTSTRAP, 'readonly');
+      const st = tx.objectStore(STORE_BOOTSTRAP);
+      const req = st.get(BOOTSTRAP_FLAG_KEY);
+      req.onsuccess = function () { resolve(!!req.result); };
+      req.onerror   = function () { reject(req.error); };
+    });
+  }
+
+  /**
+   * Persist the hub bootstrap completion flag so subsequent hub loads are
+   * no-ops. Idempotent — safe to call more than once.
+   */
+  async function setBootstrapFlag() {
+    _requireUnlocked();
+    return new Promise(function (resolve, reject) {
+      const tx = _db.transaction(STORE_BOOTSTRAP, 'readwrite');
+      const st = tx.objectStore(STORE_BOOTSTRAP);
+      const req = st.put(true, BOOTSTRAP_FLAG_KEY);
+      req.onsuccess = function () { resolve(); };
+      req.onerror   = function () { reject(req.error); };
+    });
+  }
+
+  /**
    * Internal accessor: returns a base64-encoded copy of the pickle_key for
    * use as Olm's own pickle() password. This is the same key that wraps the
    * AEAD at rest — Olm uses it as an internal obfuscation layer. The actual
@@ -491,6 +526,8 @@
     putMessage,
     getMessages,
     wipeAll,
+    getBootstrapFlag,
+    setBootstrapFlag,
     // Internal: only for olm_session.js.
     _getPickleKeyForOlm,
   };

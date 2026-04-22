@@ -36,6 +36,8 @@
   var friendAddUrlTemplate     = readJson('hub-ctx-friend-add-url-tpl') || '';
   var friendAcceptUrlTemplate  = readJson('hub-ctx-friend-accept-url-tpl') || '';
   var friendRejectUrlTemplate  = readJson('hub-ctx-friend-reject-url-tpl') || '';
+  /* Fix 3(a): PM conversation URL template — '0' is replaced by JS with peer user id */
+  var pmConversationUrlTemplate = readJson('hub-ctx-pm-url-tpl') || '';
 
   function debounce(fn, delay) {
     var t;
@@ -78,6 +80,17 @@
   var searchInput       = document.getElementById('searchTerminal');
   var sidebarSearchForm = document.getElementById('sidebarSearchForm');
 
+  /* Fix 2(b): named helper so both the input listener and startup ?q= pickup can call it */
+  function runSearch(term) {
+    showSearch();
+    fetch(searchUnifiedUrl + '?q=' + encodeURIComponent(term), {
+      headers: { 'X-CSRFToken': CSRF }
+    })
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function(data) { renderSearchResults(data); })
+      .catch(function(err) { console.error('Search error:', err); });
+  }
+
   if (searchInput && searchResults && dashboardView) {
     if (sidebarSearchForm) {
       sidebarSearchForm.addEventListener('submit', function(e) { e.preventDefault(); });
@@ -85,14 +98,15 @@
     searchInput.addEventListener('input', debounce(function() {
       var term = this.value.trim();
       if (!term) { showDashboard(); return; }
-      showSearch();
-      fetch(searchUnifiedUrl + '?q=' + encodeURIComponent(term), {
-        headers: { 'X-CSRFToken': CSRF }
-      })
-        .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
-        .then(function(data) { renderSearchResults(data); })
-        .catch(function(err) { console.error('Search error:', err); });
+      runSearch(term);
     }, 300));
+
+    /* Fix 2(c): on page load, auto-run search when URL carries ?q=<term> */
+    var initialQuery = new URLSearchParams(window.location.search).get('q');
+    if (initialQuery && initialQuery.trim()) {
+      searchInput.value = initialQuery;
+      runSearch(initialQuery.trim());
+    }
   }
 
   /* ── Unified search results renderer ── */
@@ -129,81 +143,130 @@
     if (searchUsersEmpty) searchUsersEmpty.hidden = true;
 
     if (data.users && data.users.length) {
-      data.users.forEach(function(user) { renderSearchUserCard(user); });
+      /* Fix 3(e): delegate to new renderer */
+      data.users.forEach(function(user) { renderSearchResultItem(user); });
     } else if (searchUsersEmpty) {
       searchUsersEmpty.hidden = false;
     }
   }
 
-  function renderSearchUserCard(user) {
-    var row = document.createElement('div');
-    row.className        = 'search-user-row';
-    row.dataset.userId   = user.id;
-    row.dataset.username = user.username;
+  /* Fix 3(d): redesigned user result row — replaces renderSearchUserCard + buildUserActionBtn */
+  function renderSearchResultItem(user) {
+    var item = document.createElement('div');
+    item.className       = 'search-result-item';
+    item.dataset.userId  = user.id;
+    item.dataset.username = user.username;
 
-    var avatarWrap = document.createElement('a');
-    avatarWrap.href      = profileUrlTemplate.replace('USERNAME', encodeURIComponent(user.username));
-    avatarWrap.className = 'search-user-row__identity';
-
+    /* Avatar */
     var img = document.createElement('img');
-    img.src       = user.avatar;
-    img.alt       = user.username;
-    img.className = 'search-user-row__avatar';
+    img.className = 'avatar avatar--md';
+    img.setAttribute('width', '48');
+    img.setAttribute('height', '48');
+    img.src = user.avatar;
+    img.alt = user.username;
 
-    var nameSpan = document.createElement('span');
-    nameSpan.className   = 'search-user-row__name';
-    nameSpan.textContent = user.username;
+    /* Info block */
+    var info = document.createElement('div');
+    info.className = 'search-result-item__info';
 
-    avatarWrap.appendChild(img);
-    avatarWrap.appendChild(nameSpan);
-    row.appendChild(avatarWrap);
-    row.appendChild(buildUserActionBtn(user));
+    var nameDiv = document.createElement('div');
+    nameDiv.className   = 'search-result-item__name';
+    nameDiv.textContent = user.username;
 
-    searchUsersGrid.appendChild(row);
-  }
+    var subDiv = document.createElement('div');
+    subDiv.className    = 'search-result-item__sub';
+    subDiv.textContent  = '@' + user.username;
+    subDiv.style.color      = 'var(--text-3)';
+    subDiv.style.fontFamily = 'var(--font-mono)';
 
-  function buildUserActionBtn(user) {
-    var btn = document.createElement('button');
-    btn.className = 'search-user-btn';
+    info.appendChild(nameDiv);
+    info.appendChild(subDiv);
 
+    /* Action block */
+    var actionDiv = document.createElement('div');
+    actionDiv.className           = 'search-result-item__action';
+    actionDiv.style.display       = 'flex';
+    actionDiv.style.gap           = 'var(--s-2)';
+    actionDiv.style.alignItems    = 'center';
+
+    /* Relationship-aware primary actions */
     if (user.is_friend) {
-      btn.textContent = 'Friends';
-      btn.className  += ' search-user-btn--info';
-      btn.disabled    = true;
+      /* Friends badge */
+      var badge = document.createElement('span');
+      badge.className   = 'badge badge-online';
+      badge.textContent = 'Friends';
+      actionDiv.appendChild(badge);
+
+      /* Message button */
+      var msgBtn = document.createElement('button');
+      msgBtn.className   = 'btn btn-secondary btn-sm';
+      msgBtn.textContent = 'Message';
+      if (pmConversationUrlTemplate) {
+        msgBtn.addEventListener('click', function() {
+          window.location.href = pmConversationUrlTemplate.replace('/0/', '/' + encodeURIComponent(user.id) + '/');
+        });
+      } else {
+        msgBtn.disabled = true;
+      }
+      actionDiv.appendChild(msgBtn);
+
     } else if (user.has_pending_outgoing_request) {
-      btn.textContent = 'Pending';
-      btn.className  += ' search-user-btn--muted';
-      btn.disabled    = true;
+      var pendingBtn = document.createElement('button');
+      pendingBtn.className   = 'btn btn-ghost btn-sm';
+      pendingBtn.textContent = 'Pending';
+      pendingBtn.disabled    = true;
+      actionDiv.appendChild(pendingBtn);
+
     } else if (user.has_pending_incoming_request) {
-      btn.textContent = 'Accept';
-      btn.className  += ' search-user-btn--primary';
-      btn.addEventListener('click', function() {
+      var acceptBtn = document.createElement('button');
+      acceptBtn.className   = 'btn btn-primary btn-sm';
+      acceptBtn.textContent = 'Accept';
+      acceptBtn.addEventListener('click', function() {
         showDashboard();
         var section = document.getElementById('pending-requests-section');
         if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
+      actionDiv.appendChild(acceptBtn);
+
     } else {
-      btn.textContent = 'Add friend';
-      btn.className  += ' search-user-btn--primary';
-      btn.addEventListener('click', function() {
-        btn.disabled    = true;
-        btn.textContent = '…';
+      /* Stranger — Add friend */
+      var addBtn = document.createElement('button');
+      addBtn.className   = 'btn btn-primary btn-sm';
+      addBtn.textContent = 'Add friend';
+      addBtn.addEventListener('click', function() {
+        addBtn.disabled    = true;
+        addBtn.textContent = '…';
         var url = friendAddUrlTemplate.replace('USERNAME', encodeURIComponent(user.username));
         fetch(url, { method: 'POST', headers: xhrHeaders() })
           .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
           .then(function() {
-            btn.textContent = 'Pending';
-            btn.className   = btn.className.replace('search-user-btn--primary', 'search-user-btn--muted');
-            btn.disabled    = true;
+            addBtn.textContent = 'Pending';
+            addBtn.className   = 'btn btn-ghost btn-sm';
+            addBtn.disabled    = true;
           })
           .catch(function(err) {
             console.error('Add friend error:', err);
-            btn.disabled    = false;
-            btn.textContent = 'Add friend';
+            addBtn.disabled    = false;
+            addBtn.textContent = 'Add friend';
           });
       });
+      actionDiv.appendChild(addBtn);
     }
-    return btn;
+
+    /* View profile button — always last */
+    var profileBtn = document.createElement('button');
+    profileBtn.className   = 'btn btn-ghost btn-sm view-profile-btn';
+    profileBtn.dataset.username = user.username;
+    profileBtn.textContent = 'View profile';
+    profileBtn.addEventListener('click', function() {
+      window.location.href = profileUrlTemplate.replace('USERNAME', encodeURIComponent(user.username));
+    });
+    actionDiv.appendChild(profileBtn);
+
+    item.appendChild(img);
+    item.appendChild(info);
+    item.appendChild(actionDiv);
+    searchUsersGrid.appendChild(item);
   }
 
   /* ── Pending request card + delegated accept/reject handler ── */
@@ -353,7 +416,8 @@
         if (groupsCount) groupsCount.textContent = String(data.groups_data.length);
         data.groups_data.forEach(function(group) {
           var card = document.createElement('a');
-          card.href      = '#';
+          /* Fix 1: link group cards to their room detail page */
+          card.href      = roomDetailUrlTemplate.replace('/0/', '/' + encodeURIComponent(group.id) + '/');
           card.className = 'friend-card';
           var img = document.createElement('img');
           img.src = group.avatar;

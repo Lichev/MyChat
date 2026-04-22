@@ -4,14 +4,16 @@
  *  1. Tab switcher + keyboard navigation (Rooms/Users panel swap)
  *  2. chat_info_json fetch → populate #userList (guarded: only when present)
  *  3. appendFriendToSidebar (called by hub.html dashboard JS after accept)
- *  4. ?view=users auto-activation on page load
+ *  4. ?view=users / active_tab="conversation" auto-activation on page load
  *
  * Context is read directly from json_script elements injected by hub_shell.html
  * (type="application/json" — not executable JS, CSP-safe without unsafe-inline):
  *   #shell-ctx-csrf                  — CSRF token string
- *   #shell-ctx-active-tab            — 'rooms' | 'users' | 'account'
+ *   #shell-ctx-active-tab            — 'rooms' | 'users' | 'account' | 'conversation'
  *   #shell-ctx-chat-info-url         — URL for the chat_info endpoint
  *   #shell-ctx-profile-url-template  — URL with 'USERNAME' placeholder
+ *   #shell-ctx-pm-url-template       — URL with '0' placeholder for peer_id
+ *   #shell-ctx-current-peer-id       — integer peer id (PM pages only) or ''
  */
 (function() {
   'use strict';
@@ -29,6 +31,8 @@
   var publicProfileUrlTemplate = readJson('shell-ctx-profile-url-template') || '';
   /* PM conversation URL template — '0' placeholder is replaced by friend.id */
   var pmConversationUrlTemplate = readJson('shell-ctx-pm-url-template') || '';
+  /* Current peer id (set on /pm/chat/<id>/ pages only; empty string otherwise) */
+  var currentPeerId = readJson('shell-ctx-current-peer-id');
 
   /* ── Tab switcher: only active in rooms/users mode (both panels present) ── */
   var tabList = document.querySelector('[role="tablist"]');
@@ -78,11 +82,12 @@
     });
   }
 
-  /* ── ?view=users auto-activation on load ── */
-  /* If the server set active_tab="users" (via ?view=users), activate the
-     Users tab visually. The server already sets aria-selected on the markup,
-     but we still need the JS panel state to match. */
-  if (serverActiveTab === 'users') {
+  /* ── Auto-activate Users tab on load ── */
+  /* If the server set active_tab="users" (via ?view=users) or "conversation"
+     (PM pages), activate the Users tab/panel visually. The server already sets
+     aria-selected on the markup, but we still need the JS panel hidden-state to
+     match so _sidebar_users.html is visible. */
+  if (serverActiveTab === 'users' || serverActiveTab === 'conversation') {
     var usersTabIndex = -1;
     for (var i = 0; i < tabs.length; i++) {
       if (tabs[i].id === 'tab-users') { usersTabIndex = i; break; }
@@ -103,11 +108,23 @@
     var emptyLi = userList.querySelector('.empty-state');
     if (emptyLi) emptyLi.remove();
 
+    /* Primary link: PM conversation URL when available, profile URL as fallback */
     var profileUrl = publicProfileUrlTemplate.replace('USERNAME', encodeURIComponent(friend.username));
+    var primaryUrl = profileUrl;
+    if (pmConversationUrlTemplate && friend.id) {
+      primaryUrl = pmConversationUrlTemplate.replace('/0/', '/' + encodeURIComponent(friend.id) + '/');
+    }
+
     var li  = document.createElement('li');
     var a   = document.createElement('a');
-    a.href      = profileUrl;
+    a.href      = primaryUrl;
     a.className = 'user-row';
+
+    /* Highlight the row whose id matches the current PM peer */
+    if (currentPeerId !== null && currentPeerId !== '' &&
+        String(friend.id) === String(currentPeerId)) {
+      a.classList.add('user-row--active');
+    }
 
     var img = document.createElement('img');
     img.src       = friend.avatar || '';
@@ -117,68 +134,47 @@
     var info = document.createElement('div');
     info.className = 'user-row__info';
 
+    /* Name + inline lock glyph on the same line */
+    var nameRow = document.createElement('div');
+    nameRow.className = 'user-row__name-row';
+
     var nameSpan = document.createElement('span');
     nameSpan.className   = 'user-row__name';
     nameSpan.textContent = friend.username;
+
+    /* Small lock SVG marker — indicates E2EE; purely decorative (aria-hidden) */
+    var svgNS   = 'http://www.w3.org/2000/svg';
+    var lockSvg = document.createElementNS(svgNS, 'svg');
+    lockSvg.setAttribute('width', '11');
+    lockSvg.setAttribute('height', '11');
+    lockSvg.setAttribute('viewBox', '0 0 14 14');
+    lockSvg.setAttribute('fill', 'none');
+    lockSvg.setAttribute('aria-hidden', 'true');
+    lockSvg.setAttribute('class', 'user-row__lock');
+    var lockRect = document.createElementNS(svgNS, 'rect');
+    lockRect.setAttribute('x', '2');  lockRect.setAttribute('y', '6');
+    lockRect.setAttribute('width', '10'); lockRect.setAttribute('height', '7');
+    lockRect.setAttribute('rx', '1.5');
+    lockRect.setAttribute('stroke', 'currentColor'); lockRect.setAttribute('stroke-width', '1.3');
+    var lockPath = document.createElementNS(svgNS, 'path');
+    lockPath.setAttribute('d', 'M4.5 6V4.5a2.5 2.5 0 015 0V6');
+    lockPath.setAttribute('stroke', 'currentColor'); lockPath.setAttribute('stroke-width', '1.3');
+    lockPath.setAttribute('stroke-linecap', 'round');
+    lockSvg.appendChild(lockRect);
+    lockSvg.appendChild(lockPath);
+
+    nameRow.appendChild(nameSpan);
+    nameRow.appendChild(lockSvg);
 
     var previewSpan = document.createElement('span');
     previewSpan.className   = 'user-row__preview';
     previewSpan.textContent = friend.last_dm_preview ? friend.last_dm_preview : '';
 
-    info.appendChild(nameSpan);
+    info.appendChild(nameRow);
     info.appendChild(previewSpan);
     a.appendChild(img);
     a.appendChild(info);
     li.appendChild(a);
-
-    /* Private chat link — shown alongside profile link if PM URL is configured */
-    if (pmConversationUrlTemplate && friend.id) {
-      var pmUrl = pmConversationUrlTemplate.replace('/0/', '/' + encodeURIComponent(friend.id) + '/');
-      var pmLink = document.createElement('a');
-      pmLink.href      = pmUrl;
-      pmLink.className = 'user-row__pm-link';
-      pmLink.title     = 'Private encrypted chat with ' + friend.username;
-      pmLink.setAttribute('aria-label', 'Open end-to-end encrypted chat with ' + friend.username);
-      /* Lock icon built via DOM API (no innerHTML) */
-      var svgNS = 'http://www.w3.org/2000/svg';
-      var lockSvg = document.createElementNS(svgNS, 'svg');
-      lockSvg.setAttribute('width', '12');
-      lockSvg.setAttribute('height', '12');
-      lockSvg.setAttribute('viewBox', '0 0 14 14');
-      lockSvg.setAttribute('fill', 'none');
-      lockSvg.setAttribute('aria-hidden', 'true');
-      lockSvg.style.flexShrink = '0';
-      var rect = document.createElementNS(svgNS, 'rect');
-      rect.setAttribute('x', '2'); rect.setAttribute('y', '6');
-      rect.setAttribute('width', '10'); rect.setAttribute('height', '7');
-      rect.setAttribute('rx', '1.5');
-      rect.setAttribute('stroke', 'currentColor'); rect.setAttribute('stroke-width', '1.3');
-      var path = document.createElementNS(svgNS, 'path');
-      path.setAttribute('d', 'M4.5 6V4.5a2.5 2.5 0 015 0V6');
-      path.setAttribute('stroke', 'currentColor'); path.setAttribute('stroke-width', '1.3');
-      path.setAttribute('stroke-linecap', 'round');
-      lockSvg.appendChild(rect);
-      lockSvg.appendChild(path);
-      pmLink.appendChild(lockSvg);
-      /* Wrap in a styled container */
-      pmLink.style.cssText = [
-        'display:inline-flex',
-        'align-items:center',
-        'justify-content:center',
-        'width:24px',
-        'height:24px',
-        'border-radius:var(--r-sm)',
-        'background:rgba(124,58,237,0.1)',
-        'border:1px solid rgba(124,58,237,0.2)',
-        'color:var(--accent-glow)',
-        'text-decoration:none',
-        'flex-shrink:0',
-        'transition:background var(--dur-fast)',
-        'margin-left:auto',
-      ].join(';');
-      li.style.cssText = 'display:flex;align-items:center;gap:var(--s-2)';
-      li.appendChild(pmLink);
-    }
 
     userList.appendChild(li);
   };

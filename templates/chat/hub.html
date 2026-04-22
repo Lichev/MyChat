@@ -19,7 +19,7 @@
 
     <div class="search-results__section" id="searchResultsUsers">
       <h3 class="search-results__section-title">Users</h3>
-      <div class="search-users-list" id="searchUsersGrid"></div>
+      <div class="search-result-list" id="searchUsersGrid"></div>
       <p class="search-results__empty" id="searchUsersEmpty" hidden>No users matched</p>
     </div>
   </div>
@@ -103,5 +103,20 @@
 {{ hub_friend_accept_url_tpl|json_script:"hub-ctx-friend-accept-url-tpl" }}
 {% url 'friendship_reject' 0 as hub_friend_reject_url_tpl %}
 {{ hub_friend_reject_url_tpl|json_script:"hub-ctx-friend-reject-url-tpl" }}
+{% url 'private_messages:pm_conversation' 0 as hub_pm_url_tpl %}
+{{ hub_pm_url_tpl|json_script:"hub-ctx-pm-url-tpl" }}
 <script src="{% static 'js/chat/hub-dashboard.js' %}"></script>
+{# Crypto bootstrap — deferred so it never blocks hub paint. Loads ~1MB WASM #}
+{# once per browser, then cached by the service worker / HTTP cache. #}
+{# Runs once per browser via IndexedDB flag; server endpoint is idempotent. #}
+{% url 'private_messages:pm_register_identity' as hub_register_identity_url %}
+{{ hub_register_identity_url|json_script:"hub-ctx-register-identity-url" }}
+{{ request.user.id|json_script:"hub-ctx-self-uid" }}
+<script defer src="{% static 'vendor/libsodium-sumo/0.7.15/libsodium-sumo.js' %}"></script>
+<script defer src="{% static 'vendor/libsodium-wrappers-sumo/0.7.15/sodium.js' %}"></script>
+<script defer src="{% static 'vendor/olm/3.2.15/olm.js' %}"></script>
+<script defer src="{% static 'js/private_chat/crypto_init.js' %}"></script>
+<script defer src="{% static 'js/private_chat/keystore.js' %}"></script>
+<script defer src="{% static 'js/private_chat/olm_session.js' %}"></script>
+<script defer src="{% static 'js/chat/crypto-bootstrap.js' %}"></script>
 {% endblock %}

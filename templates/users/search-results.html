@@ -88,46 +88,14 @@
 
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  function reloadPage() { window.location.reload(); }
-
-  document.querySelectorAll('.view-profile-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const username = this.getAttribute('data-username');
-      window.location.href = '{% url "public-profile" "USERNAME" %}'.replace('USERNAME', username);
-    });
-  });
-
-  document.querySelectorAll('.sendFriendRequest').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const username = this.getAttribute('data-username');
-      const url = '{% url "friendship_add_friend" "USERNAME" %}'.replace('USERNAME', username);
-      fetch(url, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
-        .then(reloadPage)
-        .catch(function(err) { console.error(err); });
-    });
-  });
-
-  document.querySelectorAll('.cancelFriendRequest').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const id  = this.getAttribute('data-request-id');
-      const url = '{% url "friendship_cancel" "PLACEHOLDER" %}'.replace('PLACEHOLDER', id);
-      fetch(url, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
-        .then(reloadPage)
-        .catch(function(err) { console.error(err); });
-    });
-  });
-
-  document.querySelectorAll('.acceptFriendRequest').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const id  = this.getAttribute('data-request-id');
-      const url = '{% url "friendship_accept" "PLACEHOLDER" %}'.replace('PLACEHOLDER', id);
-      fetch(url, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
-        .then(reloadPage)
-        .catch(function(err) { console.error(err); });
-    });
-  });
-});
-</script>
+{{ csrf_token|stringformat:"s"|json_script:"users-search-ctx-csrf" }}
+{% url 'public-profile' 'USERNAME' as users_search_profile_url_tpl %}
+{{ users_search_profile_url_tpl|json_script:"users-search-ctx-profile-url-tpl" }}
+{% url 'friendship_add_friend' 'USERNAME' as users_search_add_url_tpl %}
+{{ users_search_add_url_tpl|json_script:"users-search-ctx-friend-add-url-tpl" }}
+{% url 'friendship_cancel' 'PLACEHOLDER' as users_search_cancel_url_tpl %}
+{{ users_search_cancel_url_tpl|json_script:"users-search-ctx-friend-cancel-url-tpl" }}
+{% url 'friendship_accept' 'PLACEHOLDER' as users_search_accept_url_tpl %}
+{{ users_search_accept_url_tpl|json_script:"users-search-ctx-friend-accept-url-tpl" }}
+<script src="{% static 'js/users/search-results.js' %}"></script>
 {% endblock %}

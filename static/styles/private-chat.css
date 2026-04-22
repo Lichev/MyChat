@@ -327,6 +327,35 @@
   flex-shrink: 0;
 }
 
+/* ─── WAITING FOR PEER KEYS (persistent, not auto-hidden) ──────────── */
+.pm-send-waiting {
+  padding: var(--s-2) var(--s-4);
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--r-sm);
+  font-size: var(--font-size-xs);
+  color: var(--warn);
+  margin: 0 var(--s-6) var(--s-2);
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  line-height: 1.4;
+}
+
+.pm-send-waiting svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* Restore native `[hidden]` semantics that get clobbered by `display: flex`
+   on flex-containered warnings. Class specificity beats attribute selectors,
+   so the UA stylesheet's `[hidden] { display: none }` loses without this. */
+.pm-send-waiting[hidden],
+.pm-first-device-warning[hidden] {
+  display: none;
+}
+
 /* ─── REDUCED MOTION ─────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .chat-shell--vault,

@@ -131,10 +131,27 @@
   color: var(--text-2);
   font-size: var(--font-size-sm);
   transition: background var(--dur-base), color var(--dur-base);
+  position: relative;
+  overflow: hidden;
 }
 .user-row:hover {
   background: var(--void-4);
   color: var(--text-1);
+}
+/* Active state — mirrors .room-item.active */
+.user-row--active {
+  background: var(--accent-dim);
+  color: var(--accent-glow);
+}
+.user-row--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
 }
 .user-row .user-row__avatar,
 img.user-row__avatar {
@@ -156,12 +173,25 @@ img.user-row__avatar {
   min-width: 0;
   gap: 2px;
 }
+/* Horizontal flex row containing username + lock glyph */
+.user-row__name-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
 .user-row__name {
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+/* Inline E2EE lock glyph — sits right of the username */
+.user-row__lock {
+  flex-shrink: 0;
+  color: var(--accent-glow);
+  opacity: 0.7;
 }
 .user-row__preview {
   font-size: var(--font-size-xs);
@@ -309,6 +339,31 @@ img.user-row__avatar {
   object-fit: cover;
   border: 1px solid var(--border-strong);
   flex-shrink: 0;
+}
+/* Back-to-hub button — sits left of the avatar in both topbars */
+.chat-topbar__back {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--void-4);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--s-3);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast);
+}
+.chat-topbar__back:hover {
+  background: var(--accent-dim);
+  color: var(--accent-glow);
+  border-color: rgba(124, 58, 237, 0.3);
+}
+.chat-topbar__back:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
 }
 .chat-topbar__info { min-width: 0; }
 .chat-topbar__name {

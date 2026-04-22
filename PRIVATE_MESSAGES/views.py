@@ -2,8 +2,9 @@
 PRIVATE_MESSAGES views.
 
 Endpoints:
-    GET  /pm/chat/<peer_id>/   — conversation_view (HTML shell for E2EE chat)
-    POST /pm/panic-wipe/       — panic_wipe_view
+    GET  /pm/chat/<peer_id>/       — conversation_view (HTML shell for E2EE chat)
+    POST /pm/panic-wipe/           — panic_wipe_view
+    POST /pm/register-identity/    — register_identity_view
 """
 
 import json
@@ -19,7 +20,12 @@ from django.db import transaction
 from django.views.decorators.http import require_POST
 
 from FRIEND.models import Friend
-from .services import wipe_all_pm_data_for
+from .consumers import _MAX_KEY_FIELD_LEN, _MAX_OTPK_BATCH, _MAX_SPK_SIG_LEN
+from .services import (
+    publish_one_time_prekeys,
+    register_identity,
+    wipe_all_pm_data_for,
+)
 
 UserModel = get_user_model()
 
@@ -95,8 +101,9 @@ def conversation_view(request, peer_id: int):
         "peer_username":     peer.username,
         "peer_avatar_url":   _avatar_url(peer),
         "peer_id":           peer.id,
-        # Highlight the Users sidebar tab (hub_shell uses this to flag active tab).
-        "active_tab":        "users",
+        # Conversation mode: Users panel is active; Rooms tab becomes a hub link.
+        "active_tab":        "conversation",
+        "current_peer_id":   peer.id,
     })
 
 
@@ -148,3 +155,122 @@ def panic_wipe_view(request):
         len(peer_ids),
     )
     return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
+def register_identity_view(request):
+    """
+    POST /pm/register-identity/
+
+    Atomically register an identity key, signed prekey, and an initial batch
+    of one-time prekeys for the authenticated user in a single HTTP call.
+
+    This endpoint exists to close the bootstrap gap on the hub page, where no
+    WebSocket is open yet and the client needs to publish its own keys before
+    any peer can initiate a session.
+
+    Idempotency
+    -----------
+    Safe to call multiple times. ``register_identity`` wipes the previous OTPK
+    pool and signed prekeys before writing the new identity, so re-publishing
+    the same key material is silent and results in exactly one IdentityKey row
+    and one SignedPreKey row. The alarm-suppression logic (``is_rotation``
+    detection) in Phase 1 ensures identical re-publishes do not produce spurious
+    peer notifications.
+
+    No friendship gate
+    ------------------
+    The user publishes their OWN keys; there is no peer to authorise against.
+
+    No peer broadcast
+    -----------------
+    This endpoint is called from the hub-level bootstrap, before any specific
+    peer is targeted. ``register_identity`` still computes ``is_rotation``
+    internally, but this view discards it and does NOT send ``pm_key_rotate_alarm``
+    to anyone. If the user later runs a WebSocket ``key.rotate`` that performs a
+    genuine rotation, that consumer path still sends the alarm correctly.
+
+    Security
+    --------
+    - @login_required: rejects anonymous requests with a redirect.
+    - @require_POST: rejects GET/HEAD/PUT/etc.
+    - CSRF: enforced by Django's CsrfViewMiddleware (do NOT add @csrf_exempt).
+    - All writes committed atomically; any failure rolls back entirely.
+    - Validation mirrors the bounds used by PrivateMessageConsumer handlers.
+    """
+    user_id = request.user.id
+
+    # --- Parse JSON body ---------------------------------------------------
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "invalid_json"}, status=400)
+
+    # --- Extract fields ----------------------------------------------------
+    ik_pub_curve25519 = body.get("ik_pub_curve25519")
+    ik_pub_ed25519 = body.get("ik_pub_ed25519")
+    spk_pub = body.get("spk_pub")
+    spk_sig = body.get("spk_sig")
+    one_time_prekeys = body.get("one_time_prekeys")
+
+    # --- Validate string fields --------------------------------------------
+    def _bad(detail: str):
+        return JsonResponse({"error": "invalid_payload", "detail": detail}, status=400)
+
+    for field_name, value, max_len in (
+        ("ik_pub_curve25519", ik_pub_curve25519, _MAX_KEY_FIELD_LEN),
+        ("ik_pub_ed25519", ik_pub_ed25519, _MAX_KEY_FIELD_LEN),
+        ("spk_pub", spk_pub, _MAX_KEY_FIELD_LEN),
+        ("spk_sig", spk_sig, _MAX_SPK_SIG_LEN),
+    ):
+        if not isinstance(value, str) or not value:
+            return _bad(f"{field_name} must be a non-empty string")
+        if len(value) > max_len:
+            return _bad(f"{field_name} exceeds maximum length of {max_len}")
+
+    # --- Validate OTPK batch -----------------------------------------------
+    if not isinstance(one_time_prekeys, list) or not one_time_prekeys:
+        return _bad("one_time_prekeys must be a non-empty list")
+    if len(one_time_prekeys) > _MAX_OTPK_BATCH:
+        return _bad(f"one_time_prekeys exceeds maximum batch size of {_MAX_OTPK_BATCH}")
+
+    one_time_prekeys_validated = []
+    for idx, entry in enumerate(one_time_prekeys):
+        if not isinstance(entry, dict):
+            return _bad(f"one_time_prekeys[{idx}] must be an object")
+        otpk_id = entry.get("otpk_id")
+        otpk_pub = entry.get("otpk_pub")
+        if not isinstance(otpk_id, str) or not otpk_id:
+            return _bad(f"one_time_prekeys[{idx}].otpk_id must be a non-empty string")
+        if len(otpk_id) > _MAX_KEY_FIELD_LEN:
+            return _bad(f"one_time_prekeys[{idx}].otpk_id exceeds maximum length of {_MAX_KEY_FIELD_LEN}")
+        if not isinstance(otpk_pub, str) or not otpk_pub:
+            return _bad(f"one_time_prekeys[{idx}].otpk_pub must be a non-empty string")
+        if len(otpk_pub) > _MAX_KEY_FIELD_LEN:
+            return _bad(f"one_time_prekeys[{idx}].otpk_pub exceeds maximum length of {_MAX_KEY_FIELD_LEN}")
+        one_time_prekeys_validated.append({"otpk_id": otpk_id, "otpk_pub": otpk_pub})
+
+    # --- Atomic write ------------------------------------------------------
+    try:
+        with transaction.atomic():
+            register_identity(
+                user_id=user_id,
+                ik_curve=ik_pub_curve25519,
+                ik_ed=ik_pub_ed25519,
+                spk_pub=spk_pub,
+                spk_sig=spk_sig,
+            )
+            count = publish_one_time_prekeys(
+                user_id=user_id,
+                keys=one_time_prekeys_validated,
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception(
+            "pm.register_identity_view_error: user_id=%s error=%s",
+            user_id,
+            exc,
+        )
+        return JsonResponse({"error": "server_error"}, status=500)
+
+    return JsonResponse({"ok": True, "otpks_inserted": count})

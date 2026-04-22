@@ -135,6 +135,69 @@
   }
 
   /**
+   * Generate OTPKs, build the combined identity+SPK+OTPK payload, and POST
+   * it to the server's register-identity HTTP endpoint. Used by the hub-page
+   * crypto bootstrap. Does NOT require a WebSocket.
+   *
+   * Steps:
+   *   1. Generate 100 one-time prekeys, mark them published, persist account.
+   *   2. Extract identity keys (curve25519 + ed25519) and sign the curve25519
+   *      IK with the ed25519 IK to produce spk_sig.
+   *   3. Build the JSON request body with ik_pub_curve25519, ik_pub_ed25519,
+   *      spk_pub (= curve25519 IK per blueprint), spk_sig, and OTPK array.
+   *   4. POST to `url` with X-CSRFToken header; resolve with parsed JSON on
+   *      success, reject with a descriptive Error on HTTP failure.
+   *
+   * @param {string} url   — absolute path to POST /private-messages/register-identity/
+   * @param {string} csrf  — CSRF token string from the hub-ctx-csrf island
+   * @param {Olm.Account} account — loaded Olm account (caller owns lifecycle)
+   * @returns {Promise<{ok: boolean, otpks_inserted: number}>}
+   */
+  async function publishInitialKeysHttp(url, csrf, account) {
+    const Olm = global.Olm;
+    account.generate_one_time_keys(100);
+    const otks = JSON.parse(account.one_time_keys());
+    const curve25519Keys = otks.curve25519 || {};
+
+    // Mark as published BEFORE persisting so ratchet state is consistent.
+    account.mark_keys_as_published();
+
+    // Persist updated account state immediately (state-changing call completed).
+    await _saveAccount(account);
+
+    // Identity keys + SPK signature.
+    const idKeys = JSON.parse(account.identity_keys());
+    const spkSig = account.sign(idKeys.curve25519);
+
+    const body = {
+      ik_pub_curve25519: idKeys.curve25519,
+      ik_pub_ed25519:    idKeys.ed25519,
+      spk_pub:           idKeys.curve25519,   // SPK = IK curve25519 per blueprint
+      spk_sig:           spkSig,
+      one_time_prekeys:  Object.entries(curve25519Keys).map(function ([id, pub]) {
+        return { otpk_id: id, otpk_pub: pub };
+      }),
+    };
+
+    const res = await fetch(url, {
+      method:      'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type':     'application/json',
+        'X-CSRFToken':      csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(function () { return ''; });
+      throw new Error('register-identity HTTP ' + res.status + ': ' + text);
+    }
+    return await res.json();
+  }
+
+  /**
    * Publish identity keys to the server via session.init equivalent.
    * Sends a prekey.publish plus registers IK/SPK.
    */
@@ -347,6 +410,7 @@ if (messageType === 0) {
     getConvId,
     loadOrCreateAccount,
     publishInitialKeys,
+    publishInitialKeysHttp,
     registerIdentityOnServer,
     outboundSession,
     inboundSession,

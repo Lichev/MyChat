@@ -101,6 +101,12 @@ chatSocket.onmessage = function(e) {
   const chatMessages = document.getElementById('chatMessages');
   if (!chatMessages) return;
 
+  /* Remove the server-rendered "No messages yet" placeholder on first message.
+     Only `.msg-date-sep` inside #chatMessages is targeted; date separators
+     injected later by future features will not be affected once real messages exist. */
+  const placeholder = chatMessages.querySelector('.msg-date-sep');
+  if (placeholder) placeholder.remove();
+
   const isOwn = data.username === userName;
   const row   = buildMessageRow(data.message, data.username, isOwn, data.timestamp, data.sender_avatar);
   chatMessages.appendChild(row);

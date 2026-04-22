@@ -11,7 +11,7 @@ do not need to manage transactions explicitly.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 
 from django.db import transaction
 from django.utils import timezone
@@ -42,7 +42,7 @@ def register_identity(
     ik_ed: str,
     spk_pub: str,
     spk_sig: str,
-) -> IdentityKey:
+) -> tuple[IdentityKey, bool]:
     """
     Create or replace the identity key and initial signed prekey for a user.
 
@@ -58,8 +58,22 @@ def register_identity(
     spk_pub  : Curve25519 SPK public (= ik_curve at registration), base64url
     spk_sig  : Ed25519 signature over spk_pub, base64url
 
-    Returns the saved IdentityKey instance.
+    Returns
+    -------
+    (ik, is_rotation) where:
+    - ik           : the newly saved IdentityKey instance.
+    - is_rotation  : True only when a prior identity key existed AND the new
+                     Curve25519 key differs byte-for-byte from the prior one.
+                     First publish (no prior row) -> False.
+                     Idempotent re-publish of the same key -> False.
+                     Actual device change / key regeneration -> True.
     """
+    # Capture any existing Curve25519 key BEFORE the delete so we can
+    # distinguish a genuine rotation from a first-time publish.
+    prior = IdentityKey.objects.filter(user_id=user_id).values_list(
+        "ik_pub_curve25519", flat=True
+    ).first()
+
     # Wipe any existing key material for this user before registering new keys.
     IdentityKey.objects.filter(user_id=user_id).delete()
     SignedPreKey.objects.filter(user_id=user_id).delete()
@@ -79,13 +93,16 @@ def register_identity(
         is_active=True,
     )
 
+    is_rotation = prior is not None and prior != ik_curve
+
     logger.info(
-        "pm.identity_registered: user_id=%s ik_curve_len=%d ik_ed_len=%d",
+        "pm.identity_registered: user_id=%s is_rotation=%s ik_curve_len=%d ik_ed_len=%d",
         user_id,
+        is_rotation,
         len(ik_curve),
         len(ik_ed),
     )
-    return ik
+    return ik, is_rotation
 
 
 # ---------------------------------------------------------------------------

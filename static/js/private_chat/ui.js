@@ -160,6 +160,7 @@
 
     if (!sessionPickle) {
       _pendingQueue.push(plaintext);
+      _appendMessage(plaintext, selfCtx.username, true, selfCtx.avatar_url);
       await _initiateOutboundSession();
       return; // _onPrekeyBundle drains _pendingQueue after session is ready
     }
@@ -183,18 +184,60 @@
   // Array (not a single variable) so rapid sends before session ready are all preserved.
   let _pendingQueue = [];
   let _x3dhInFlight = false; // guard against duplicate prekey.request triggers
+  let _pendingOnBundle = null; // module-scope ref so it can be off()'d from outside the closure
+
+  // ── Retry-with-backoff state ───────────────────────────────────────
+  let _retryTimer = null;
+  let _retryDelay = 10_000;
+  const _RETRY_MAX = 60_000;
 
   async function _initiateOutboundSession() {
     if (_x3dhInFlight) return; // already waiting for a bundle
     _x3dhInFlight = true;
-    // One-shot prekey.bundle handler.
-    function onBundle(data) {
-      window.PM_SOCKET.off('prekey.bundle', onBundle);
+    _pendingOnBundle = function onBundle(data) {
+      if (_pendingOnBundle) {
+        window.PM_SOCKET.off('prekey.bundle', _pendingOnBundle);
+      }
+      _pendingOnBundle = null;
       _x3dhInFlight = false;
       _onPrekeyBundle(data.bundle);
-    }
-    window.PM_SOCKET.on('prekey.bundle', onBundle);
+    };
+    window.PM_SOCKET.on('prekey.bundle', _pendingOnBundle);
     window.PM_SOCKET.requestPrekey();
+  }
+
+  function _unwindPendingBundleWait() {
+    if (_pendingOnBundle) {
+      window.PM_SOCKET.off('prekey.bundle', _pendingOnBundle);
+      _pendingOnBundle = null;
+    }
+    _x3dhInFlight = false;
+  }
+
+  function _scheduleRetry() {
+    if (_retryTimer) return;
+    if (_pendingQueue.length === 0) return;
+    _retryTimer = setTimeout(async function () {
+      _retryTimer = null;
+      _retryDelay = Math.min(_retryDelay * 2, _RETRY_MAX);
+      if (_pendingQueue.length === 0) return;
+      await _initiateOutboundSession();
+    }, _retryDelay);
+  }
+
+  function _cancelRetry() {
+    if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
+    _retryDelay = 10_000;
+  }
+
+  function _showWaitingForPeer() {
+    const el = _getEl('pm-send-waiting');
+    if (el) el.hidden = false;
+  }
+
+  function _hideWaitingForPeer() {
+    const el = _getEl('pm-send-waiting');
+    if (el) el.hidden = true;
   }
 
   async function _onPrekeyBundle(bundle) {
@@ -214,6 +257,10 @@
       return;
     }
 
+    // Session established — hide waiting indicator and cancel any pending retry timer.
+    _hideWaitingForPeer();
+    _cancelRetry();
+
     // Drain the pending queue in order.
     const queued = _pendingQueue.slice();
     _pendingQueue = [];
@@ -222,8 +269,9 @@
         const { ciphertext_b64, message_type } = await window.PM_OLM_SESSION.encrypt(
           _selfUid, _peerUid, text, _account
         );
+        // Message was already rendered optimistically in _sendMessage's queue-path.
+        // Only ship the ciphertext — do NOT call _appendMessage again here.
         window.PM_SOCKET.sendEnvelope(ciphertext_b64, message_type, bundle.otpk_id || null);
-        _appendMessage(text, selfCtx.username, true, selfCtx.avatar_url);
       } catch (e) {
         console.error('[PM_UI] encrypt error during queue drain', e);
         _showSendError('Encryption failed: ' + e.message);
@@ -406,6 +454,11 @@
 
     window.PM_SOCKET.on('error', function (data) {
       console.error('[PM_SOCKET] server error:', data.code, data.detail);
+      if (data && data.code === 'prekey_not_found') {
+        _unwindPendingBundleWait();
+        _showWaitingForPeer();
+        _scheduleRetry();
+      }
     });
 
     // 8. If new account: register identity keys + OTPKs with server on first connect.

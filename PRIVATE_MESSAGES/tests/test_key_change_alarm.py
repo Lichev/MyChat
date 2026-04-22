@@ -3,7 +3,12 @@ test_key_change_alarm.py
 
 Verifies that after a key.rotate event, the peer receives a
 pm.key_rotate_alarm event via their channel group with the rotation reason.
+
+Also verifies that first-time publishes and idempotent re-publishes of the
+same key do NOT send the alarm, preventing false-positive security banners.
 """
+
+import asyncio
 
 from django.test import TransactionTestCase
 from django.contrib.auth import get_user_model
@@ -171,3 +176,103 @@ class KeyChangeAlarmTest(TransactionTestCase):
                              "ik_pub_ed25519 should be updated after key.rotate")
         finally:
             await comm_a.disconnect()
+
+    async def test_first_publish_does_NOT_alarm_peer(self):
+        """
+        When a user has NO prior IdentityKey row and sends key.rotate for the
+        first time, the peer's channel group must NOT receive a
+        pm_key_rotate_alarm event — this is a first publish, not a rotation.
+
+        The sender must still receive key.rotate.ack, and the new IdentityKey
+        row must be present in the DB after the call.
+        """
+        # Delete A's existing identity key to simulate a first-time publish.
+        await IdentityKey.objects.filter(user=self.user_a).adelete()
+
+        channel_layer = get_channel_layer()
+        peer_group = f"pm_user_{self.user_b.pk}"
+        test_channel = "test_first_publish_no_alarm_ch"
+
+        await channel_layer.group_add(peer_group, test_channel)
+
+        comm_a = WebsocketCommunicator(_app(), f"/ws/pm/{self.user_b.pk}/")
+        comm_a.scope["user"] = self.user_a
+        connected, _ = await comm_a.connect()
+        self.assertTrue(connected)
+
+        try:
+            new_curve = "Z" * 44
+            await comm_a.send_json_to({
+                "type":             "key.rotate",
+                "ik_pub_curve25519": new_curve,
+                "ik_pub_ed25519":   "Z" * 44,
+                "spk_pub":          "Z" * 44,
+                "spk_sig":          "Y" * 88,
+            })
+
+            # A must receive key.rotate.ack regardless of rotation status.
+            ack = await comm_a.receive_json_from()
+            self.assertEqual(ack.get("type"), "key.rotate.ack",
+                             f"Expected key.rotate.ack from A on first publish, got: {ack}")
+
+            # The peer channel must NOT receive any alarm within a short window.
+            with self.assertRaises(asyncio.TimeoutError):
+                await asyncio.wait_for(
+                    channel_layer.receive(test_channel),
+                    timeout=0.5,
+                )
+
+            # The new IdentityKey row must exist in the DB.
+            ik = await IdentityKey.objects.aget(user=self.user_a)
+            self.assertEqual(ik.ik_pub_curve25519, new_curve,
+                             "IdentityKey row must be created on first publish")
+        finally:
+            await comm_a.disconnect()
+            await channel_layer.group_discard(peer_group, test_channel)
+
+    async def test_identical_republish_does_NOT_alarm_peer(self):
+        """
+        When a user re-publishes the exact same Curve25519 identity key that is
+        already stored (idempotent re-publish), the peer's channel group must NOT
+        receive a pm_key_rotate_alarm event.
+
+        setUp seeds A with ik_pub_curve25519="A"*44. This test sends the same
+        value, verifying that byte-for-byte equality suppresses the alarm.
+
+        The sender must still receive key.rotate.ack.
+        """
+        channel_layer = get_channel_layer()
+        peer_group = f"pm_user_{self.user_b.pk}"
+        test_channel = "test_identical_republish_no_alarm_ch"
+
+        await channel_layer.group_add(peer_group, test_channel)
+
+        comm_a = WebsocketCommunicator(_app(), f"/ws/pm/{self.user_b.pk}/")
+        comm_a.scope["user"] = self.user_a
+        connected, _ = await comm_a.connect()
+        self.assertTrue(connected)
+
+        try:
+            # Send the SAME curve25519 key that setUp seeded ("A" * 44).
+            await comm_a.send_json_to({
+                "type":             "key.rotate",
+                "ik_pub_curve25519": "A" * 44,
+                "ik_pub_ed25519":   "A" * 44,
+                "spk_pub":          "A" * 44,
+                "spk_sig":          "B" * 88,
+            })
+
+            # A must receive key.rotate.ack regardless.
+            ack = await comm_a.receive_json_from()
+            self.assertEqual(ack.get("type"), "key.rotate.ack",
+                             f"Expected key.rotate.ack from A on identical republish, got: {ack}")
+
+            # The peer channel must NOT receive any alarm within a short window.
+            with self.assertRaises(asyncio.TimeoutError):
+                await asyncio.wait_for(
+                    channel_layer.receive(test_channel),
+                    timeout=0.5,
+                )
+        finally:
+            await comm_a.disconnect()
+            await channel_layer.group_discard(peer_group, test_channel)
