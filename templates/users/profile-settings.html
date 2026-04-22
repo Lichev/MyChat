@@ -2,10 +2,7 @@
 {% load static %}
 {% load custom_filters %}
 
-{# profile-settings.html — rendered by ProfileSettingsView.
-   The view redirects to profile-settings-name in most cases; this template
-   is the fallback if someone lands here directly. It shows the settings
-   sub-nav and an empty state prompting the user to choose a section. #}
+{% comment %}profile-settings.html — rendered by ProfileSettingsView as the fallback when someone lands here directly; the view redirects to profile-settings-name in most cases. Shows the settings sub-nav and an empty state.{% endcomment %}
 
 {% block page_title %}Settings — MyChat{% endblock %}
 

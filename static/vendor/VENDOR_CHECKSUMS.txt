@@ -1,0 +1,17 @@
+# MyChat — vendored library checksums
+# Generated: 2026-04-22
+# Algorithm: SHA-256
+# Verify with: sha256sum -c VENDOR_CHECKSUMS.txt (from project root)
+
+cf9a793bcbad919967d79e7f2bf52e0492b646332d36ee7e1c2d1b0ff47b3c40  static/vendor/olm/3.2.15/olm.js
+3fc8dbfe8f44d550b1c9165e6c2af33323aaeba0a5ec223cef74959dd434642b  static/vendor/olm/3.2.15/olm.wasm
+b7105ad0513c847eb19aa3b38dde1a2034cfbe689986195d5669dcabe24c8723  static/vendor/libsodium-wrappers-sumo/0.7.15/sodium.js
+18ae399f81182bc9de916e9c77b195df20cc58d6f2d55a62b085a299f1bf1780  static/vendor/qrcode-generator/1.4.4/qrcode.js
+
+# Sources:
+#   olm@3.2.15          — https://gitlab.matrix.org/matrix-org/olm/-/tags/3.2.15
+#                         npm: @matrix-org/olm@3.2.15
+#   libsodium-wrappers-sumo@0.7.15 — https://github.com/jedisct1/libsodium.js
+#                         npm: libsodium-wrappers-sumo@0.7.15 (sumo build)
+#   qrcode-generator@1.4.4  — https://github.com/kazuhikoarase/qrcode-generator
+#                         MIT license

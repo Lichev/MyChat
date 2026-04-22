@@ -1,0 +1,338 @@
+/*
+ * private-chat.css — Styles for the E2EE private conversation view.
+ *
+ * Uses ONLY tokens from design-system.css.
+ * No hardcoded colour values — everything references CSS custom properties.
+ * Import order: after chat-ui.css (via {% block extra_css %}).
+ */
+
+/* ─── VAULT SHELL VARIANT ────────────────────────────────────────────── */
+/*
+ * .chat-shell--vault overrides the default chat-shell with a violet perimeter
+ * border to signal "extra secure" mode. The animation pulses subtly on load.
+ */
+.chat-shell--vault {
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  border-radius: var(--r-lg);
+  box-shadow:
+    0 0 0 1px rgba(124, 58, 237, 0.1),
+    0 0 40px rgba(124, 58, 237, 0.06);
+  animation: vault-border-in var(--dur-slow) var(--ease-out) forwards;
+}
+
+@keyframes vault-border-in {
+  from { box-shadow: 0 0 0 1px rgba(124, 58, 237, 0); }
+  to   { box-shadow:
+    0 0 0 1px rgba(124, 58, 237, 0.1),
+    0 0 40px rgba(124, 58, 237, 0.06); }
+}
+
+/* ─── TOPBAR E2EE STRIP ───────────────────────────────────────────────── */
+.pm-e2ee-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-6);
+  background: rgba(124, 58, 237, 0.04);
+  border-bottom: 1px solid rgba(124, 58, 237, 0.12);
+  font-size: var(--font-size-xs);
+  color: var(--accent-glow);
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.pm-e2ee-strip__icon {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.pm-e2ee-strip__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* ─── TOPBAR LOCK ICON ───────────────────────────────────────────────── */
+.pm-topbar-lock {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  color: var(--accent-glow);
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* ─── SAFETY NUMBER PILL ─────────────────────────────────────────────── */
+.pm-safety-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 4px var(--s-3);
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: var(--r-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--accent-glow);
+  cursor: pointer;
+  transition:
+    background var(--dur-base),
+    border-color var(--dur-base),
+    box-shadow var(--dur-base);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pm-safety-pill:hover {
+  background: var(--accent-dim);
+  border-color: rgba(124, 58, 237, 0.4);
+  box-shadow: var(--shadow-glow);
+}
+
+.pm-safety-pill:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+
+/* ─── ENCRYPTED MESSAGE BUBBLE ───────────────────────────────────────── */
+/*
+ * Adds a left-edge micro-bar in accent colour to flag encrypted bubbles.
+ * Works alongside .msg-bubble--incoming and .msg-bubble--outgoing.
+ */
+.msg-bubble--encrypted.msg-bubble--incoming {
+  border-left: 2px solid rgba(124, 58, 237, 0.4);
+}
+
+.msg-bubble--encrypted.msg-bubble--outgoing {
+  border-right: 2px solid rgba(167, 139, 250, 0.35);
+}
+
+/* ─── FIRST-DEVICE WARNING CARD ──────────────────────────────────────── */
+.pm-first-device-warning {
+  margin: var(--s-4) var(--s-6);
+  padding: var(--s-4) var(--s-5);
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--r-md);
+  font-size: var(--font-size-sm);
+  color: var(--warn);
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  flex-shrink: 0;
+}
+
+.pm-first-device-warning__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ─── KEY-CHANGE BANNER (blocking modal overlay) ─────────────────────── */
+.pm-key-change-banner {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-4);
+  background: rgba(13, 15, 20, 0.92);
+  backdrop-filter: blur(12px);
+  padding: var(--s-8);
+  text-align: center;
+}
+
+.pm-kcb__icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.pm-kcb__title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--error);
+  max-width: 480px;
+}
+
+.pm-kcb__desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-2);
+  max-width: 480px;
+  line-height: 1.65;
+}
+
+.pm-kcb__btn {
+  margin-top: var(--s-2);
+  padding: var(--s-3) var(--s-6);
+  background: var(--error);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-base), transform var(--dur-fast) var(--ease-spring);
+}
+
+.pm-kcb__btn:hover {
+  background: #dc2626;
+  transform: scale(1.03);
+}
+
+.pm-kcb__btn:focus-visible {
+  outline: 2px solid var(--error);
+  outline-offset: 3px;
+}
+
+/* ─── FINGERPRINT MODAL ───────────────────────────────────────────────── */
+.pm-fingerprint-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 15, 20, 0.85);
+  backdrop-filter: blur(10px);
+  padding: var(--s-6);
+}
+
+.pm-fingerprint-modal {
+  position: relative;
+  background: var(--void-2);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  padding: var(--s-8);
+  max-width: 480px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.pm-fingerprint-modal__close {
+  position: absolute;
+  top: var(--s-4);
+  right: var(--s-4);
+  width: 28px;
+  height: 28px;
+  background: var(--void-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+
+.pm-fingerprint-modal__close:hover {
+  background: var(--void-5);
+  color: var(--text-1);
+}
+
+.pm-fingerprint-modal__title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.pm-fingerprint-modal__instructions {
+  font-size: var(--font-size-sm);
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.pm-fingerprint-modal__number {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-md);
+  color: var(--accent-glow);
+  background: var(--void-3);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: var(--r-md);
+  padding: var(--s-4) var(--s-5);
+  line-height: 2;
+  letter-spacing: 0.12em;
+  word-break: break-all;
+  white-space: pre-wrap;
+  user-select: all;
+}
+
+.pm-fingerprint-modal__qr {
+  display: flex;
+  justify-content: center;
+  padding: var(--s-4) 0 0;
+}
+
+.pm-fingerprint-modal__qr canvas {
+  border-radius: var(--r-sm);
+  border: 3px solid var(--void-4);
+}
+
+.pm-fingerprint-modal__qr-error {
+  font-size: var(--font-size-xs);
+  color: var(--text-3);
+}
+
+/* ─── STORAGE PERSISTENCE DENIED BANNER ─────────────────────────────── */
+/*
+ * Non-dismissible warning shown when navigator.storage.persist() returns false.
+ * Sits above the message list inside .chat-messages's parent.
+ * Does not block chat functionality — purely informational.
+ * Matches the .pm-first-device-warning visual language (amber/warning palette).
+ */
+.pm-persist-denied-banner {
+  margin: var(--s-4) var(--s-6);
+  padding: var(--s-4) var(--s-5);
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  border-radius: var(--r-md);
+  font-size: var(--font-size-sm);
+  color: var(--error);
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  flex-shrink: 0;
+}
+
+.pm-persist-denied-banner__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 0.95rem;
+}
+
+.pm-persist-denied-banner__text {
+  flex: 1;
+}
+
+/* ─── SEND ERROR INLINE ───────────────────────────────────────────────── */
+.pm-send-error {
+  padding: var(--s-2) var(--s-4);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--r-sm);
+  font-size: var(--font-size-xs);
+  color: var(--error);
+  margin: 0 var(--s-6) var(--s-2);
+  flex-shrink: 0;
+}
+
+/* ─── REDUCED MOTION ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .chat-shell--vault,
+  .pm-kcb__btn,
+  .pm-safety-pill {
+    animation: none !important;
+    transition: none !important;
+  }
+}

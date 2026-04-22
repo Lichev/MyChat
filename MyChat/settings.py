@@ -70,34 +70,31 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 
 
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = (
-    "'self'",
-    "'unsafe-inline'",          # TODO: remove once all inline <script> blocks are externalised
-)
-CSP_STYLE_SRC = (
-    "'self'",
-    "'unsafe-inline'",
-    "https://cdnjs.cloudflare.com",
-    "https://fonts.googleapis.com",
-)
-CSP_FONT_SRC = (
-    "'self'",
-    "https://cdnjs.cloudflare.com",
-    "https://fonts.gstatic.com",
-)
-CSP_IMG_SRC = (
-    "'self'",
-    "data:",
-    # https://upload.wikimedia.org removed — the Wikipedia SVG used for the old
-    # "create room" button has been replaced with an inline CSS/text element.
-)
-CSP_CONNECT_SRC = (
-    "'self'",
-    "wss:",
-    "ws:",
-)
-CSP_FRAME_ANCESTORS = ("'none'",)
+# django-csp 4.0+ reads CONTENT_SECURITY_POLICY (dict) only. Legacy CSP_*
+# tuple keys are silently ignored in 4.x — do not add them back.
+# 'unsafe-inline' removed from script-src: all inline <script> blocks externalised.
+# 'wasm-unsafe-eval' permits the Olm and libsodium WASM runtimes in PRIVATE_CHATS.
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": ["'self'"],
+        "script-src":  ["'self'", "'wasm-unsafe-eval'"],
+        "style-src":   [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdnjs.cloudflare.com",
+            "https://fonts.googleapis.com",
+        ],
+        "font-src":    [
+            "'self'",
+            "https://cdnjs.cloudflare.com",
+            "https://fonts.gstatic.com",
+        ],
+        "img-src":     ["'self'", "data:"],
+        "connect-src": ["'self'", "wss:", "ws:"],
+        "frame-ancestors": ["'none'"],
+        "worker-src":  ["'self'"],
+    }
+}
 
 ROOT_URLCONF = 'MyChat.urls'
 
@@ -181,10 +178,20 @@ _LOG_LEVEL = os.environ.get('LOG_LEVEL', 'WARNING')
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'filters': {
+        # Belt-and-suspenders: attach PrivateChatLogScrubber to both the root
+        # handler and the dedicated PRIVATE_MESSAGES logger so no ciphertext or
+        # key material can leak through any handler.
+        'pm_scrubber': {
+            '()': 'PRIVATE_MESSAGES.logging_filters.PrivateChatLogScrubber',
+        },
+    },
     'handlers': {
         'console': {
             'level': _LOG_LEVEL,
             'class': 'logging.StreamHandler',
+            # Scrubber on the root handler catches all loggers that propagate.
+            'filters': ['pm_scrubber'],
         },
     },
     'root': {
@@ -192,6 +199,16 @@ LOGGING = {
         'level': _LOG_LEVEL,
     },
     'loggers': {
+        # Dedicated PRIVATE_MESSAGES logger with its own scrubber reference.
+        # propagate=False prevents double-handling via the root logger's handler;
+        # the scrubber filter here is redundant with the root handler's filter
+        # but provides defence-in-depth if the handler list changes.
+        'PRIVATE_MESSAGES': {
+            'handlers': ['console'],
+            'level': _LOG_LEVEL,
+            'propagate': False,
+            'filters': ['pm_scrubber'],
+        },
         'django.channels': {
             'handlers': ['console'],
             'level': _LOG_LEVEL,

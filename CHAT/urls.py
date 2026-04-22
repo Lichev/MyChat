@@ -7,5 +7,4 @@ urlpatterns = [
     path('search/results/', chat_search_page, name='chat_search'),
     path('info/', chat_info_json, name='chat_info'),
     path('rooms/', include('CHAT_ROOMS.urls')),
-    path('dm/', include('PRIVATE_MESSAGES.urls')),
 ]

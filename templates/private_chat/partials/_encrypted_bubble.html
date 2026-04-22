@@ -1,0 +1,25 @@
+{% comment %}
+_encrypted_bubble.html — Message bubble template for cloning.
+
+This partial defines the HTML structure of a single encrypted message bubble.
+It is used as a <template> element (never innerHTML-injected) by ui.js.
+All user-provided content is inserted via textContent in JavaScript —
+no Django template rendering of message bodies here.
+
+The actual DOM construction in ui.js mirrors chat-script.js's buildMessageRow() pattern.
+{% endcomment %}
+
+<template id="pm-bubble-template">
+  <div class="msg-row">
+    <!-- Avatar slot: img.msg-avatar or span.msg-avatar--placeholder -->
+    <div class="msg-avatar-slot"></div>
+    <div class="msg-content">
+      <div class="msg-meta">
+        <span class="msg-name"></span>
+        <span class="msg-time"></span>
+      </div>
+      <!-- bubble class toggled by JS: msg-bubble--incoming or msg-bubble--outgoing + msg-bubble--encrypted -->
+      <div class="msg-bubble msg-bubble--encrypted"></div>
+    </div>
+  </div>
+</template>
