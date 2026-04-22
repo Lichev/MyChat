@@ -13,4 +13,7 @@ __pycache__/
 .claude_temp/
 .claude_uploads/
 .claude_downloads/
-.claude_backups/    
+.claude_backups/
+migrations/
+staticfiles/
+media/
