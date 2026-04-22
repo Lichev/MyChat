@@ -9,7 +9,7 @@ urlpatterns = [
     path('accounts/', include('USERS.urls')),
     path('friend/', include('FRIEND.urls')),
     path('chat/', include('CHAT.urls')),
-
+    path('pm/', include('PRIVATE_MESSAGES.urls')),
 ]
 
 

@@ -66,12 +66,7 @@
 {% endblock %}
 
 {% block page_js %}
-<script>
-document.querySelectorAll('.view-profile-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var username = this.getAttribute('data-username');
-    window.location.href = '{% url "public-profile" "USERNAME" %}'.replace('USERNAME', username);
-  });
-});
-</script>
+{% url 'public-profile' 'USERNAME' as friends_profile_url_tpl %}
+{{ friends_profile_url_tpl|json_script:"friends-ctx-profile-url-tpl" }}
+<script src="{% static 'js/friend/friends-list.js' %}"></script>
 {% endblock %}

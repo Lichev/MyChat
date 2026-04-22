@@ -25,13 +25,13 @@
     Requests
     <span class="dashboard-pill__count">{{ requests_len }}</span>
   </a>
-  <span class="dashboard-pill">
+  <a href="{% url 'public_chat_room' %}?view=users" class="dashboard-pill">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
       <path d="M2 2h10v7a2 2 0 01-2 2H4a2 2 0 01-2-2V2z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
     </svg>
     Messages
     <span class="dashboard-pill__count">0</span>
-  </span>
+  </a>
 </div>
 
 <!-- Profile card -->

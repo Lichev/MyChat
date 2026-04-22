@@ -17,7 +17,7 @@ class UserModelAdmin(UserAdmin):
         ('Personal info', {'fields': ('first_name', 'last_name')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
-        ('Profile', {'fields': ('gender', 'profile_picture', 'phone_number', 'date_of_birth', 'country', 'city', 'bio', 'interests')}),
+        ('Profile', {'fields': ('gender', 'profile_picture', 'phone_number', 'date_of_birth', 'country', 'city', 'bio', 'interest')}),
     )
 
     add_fieldsets = (

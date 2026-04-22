@@ -49,14 +49,14 @@
 
     <!-- Inline search bar (hidden until trigger) -->
     <div class="topnav__search-bar" id="searchBar" role="search" hidden>
-      <form action="{% url 'search-results' %}" method="get" class="search-form">
+      <form action="{% url 'public_chat_room' %}" method="get" class="search-form">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
           <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
         <input
           type="text"
-          name="query"
+          name="q"
           id="globalSearch"
           class="search-input"
           placeholder="Search users, rooms…"
@@ -126,72 +126,57 @@
   </div>
 </header>
 
-<!-- ── RECOVERY KEY REMINDER BANNER ───────────────────────────────── -->
-{% if request.session.show_key_banner %}
-<div class="key-banner" id="keyBanner" role="alert" aria-live="polite">
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex-shrink:0">
-    <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 4v3m0 2.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-  </svg>
-  <span>
-    <strong>Save your recovery key.</strong>
-    It is the only way to recover your account if you forget your password.
-    You can rotate it in <a href="{% url 'profile-settings-security' request.user.pk %}">Security settings</a>.
-  </span>
-  <button class="key-banner__close" id="keyBannerClose" aria-label="Dismiss">
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-  </button>
-</div>
-<style>
-.key-banner {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-6);
-  background: rgba(245,158,11,0.12);
-  border-bottom: 1px solid rgba(245,158,11,0.3);
-  font-size: var(--font-size-sm);
-  color: var(--text-2);
-  line-height: 1.5;
-}
-.key-banner a { color: var(--warn); text-decoration: underline; }
-.key-banner strong { color: var(--warn); }
-.key-banner__close {
-  margin-left: auto;
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-3);
-  padding: var(--s-1);
-  border-radius: var(--r-sm);
-  transition: color var(--dur-fast);
-}
-.key-banner__close:hover { color: var(--text-1); }
-</style>
-<script>
-(function () {
-  var btn = document.getElementById('keyBannerClose');
-  var banner = document.getElementById('keyBanner');
-  if (!btn || !banner) return;
-  btn.addEventListener('click', function () {
-    banner.style.transition = 'opacity 0.25s';
-    banner.style.opacity = '0';
-    setTimeout(function () { banner.remove(); }, 260);
-    var csrf = document.cookie.match(/csrftoken=([^;]+)/);
-    fetch('{% url "dismiss_key_banner" %}', {
-      method: 'POST',
-      headers: { 'X-CSRFToken': csrf ? csrf[1] : '' },
-      credentials: 'same-origin',
-    });
-  });
-}());
-</script>
-{% endif %}
-
 <!-- ── PAGE CONTENT ────────────────────────────────────────────────── -->
 <div class="page-wrap">
+
+  <!-- ── RECOVERY KEY REMINDER BANNER ───────────────────────────────── -->
+  {% if request.session.show_key_banner %}
+  <div class="key-banner" id="keyBanner" role="alert" aria-live="polite">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex-shrink:0">
+      <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 4v3m0 2.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span>
+      <strong>Save your recovery key.</strong>
+      It is the only way to recover your account if you forget your password.
+      You can rotate it in <a href="{% url 'profile-settings-security' request.user.pk %}">Security settings</a>.
+    </span>
+    <button class="key-banner__close" id="keyBannerClose" aria-label="Dismiss"
+            data-dismiss-url="{% url 'dismiss_key_banner' %}">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <style>
+  .key-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-6);
+    background: rgba(245,158,11,0.12);
+    border-bottom: 1px solid rgba(245,158,11,0.3);
+    font-size: var(--font-size-sm);
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .key-banner a { color: var(--warn); text-decoration: underline; }
+  .key-banner strong { color: var(--warn); }
+  .key-banner__close {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-3);
+    padding: var(--s-1);
+    border-radius: var(--r-sm);
+    transition: color var(--dur-fast);
+  }
+  .key-banner__close:hover { color: var(--text-1); }
+  </style>
+  <script src="{% static 'js/base/key-banner.js' %}"></script>
+  {% endif %}
+
   {% block content %}{% endblock %}
 </div>
 
@@ -210,74 +195,7 @@
 {% endif %}
 
 <!-- ── GLOBAL JS ───────────────────────────────────────────────────── -->
-<script>
-(function() {
-  'use strict';
-
-  /* --- Search toggle --- */
-  const trigger   = document.getElementById('searchTrigger');
-  const bar       = document.getElementById('searchBar');
-  const closeBtn  = document.getElementById('searchClose');
-  const input     = document.getElementById('globalSearch');
-
-  if (trigger && bar) {
-    function openSearch() {
-      bar.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-      if (input) input.focus();
-    }
-    function closeSearch() {
-      bar.hidden = true;
-      trigger.setAttribute('aria-expanded', 'false');
-    }
-    trigger.addEventListener('click', openSearch);
-    if (closeBtn) closeBtn.addEventListener('click', closeSearch);
-
-    // Ctrl+K shortcut
-    document.addEventListener('keydown', function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        bar.hidden ? openSearch() : closeSearch();
-      }
-      if (e.key === 'Escape') closeSearch();
-    });
-  }
-
-  /* --- Avatar dropdown --- */
-  const avatarBtn  = document.getElementById('navAvatarBtn');
-  const dropdown   = document.getElementById('navDropdown');
-
-  if (avatarBtn && dropdown) {
-    avatarBtn.addEventListener('click', function() {
-      const open = !dropdown.hidden;
-      dropdown.hidden = open;
-      avatarBtn.setAttribute('aria-expanded', String(!open));
-    });
-    document.addEventListener('click', function(e) {
-      const wrap = document.getElementById('navAvatarWrap');
-      if (wrap && !wrap.contains(e.target)) {
-        dropdown.hidden = true;
-        avatarBtn.setAttribute('aria-expanded', 'false');
-      }
-    });
-    // Keyboard close
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && !dropdown.hidden) {
-        dropdown.hidden = true;
-        avatarBtn.setAttribute('aria-expanded', 'false');
-        avatarBtn.focus();
-      }
-    });
-  }
-
-  /* --- Toast auto-dismiss --- */
-  document.querySelectorAll('.toast').forEach(function(toast) {
-    const close = toast.querySelector('.toast__close');
-    if (close) close.addEventListener('click', () => toast.remove());
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 5000);
-  });
-})();
-</script>
+<script src="{% static 'js/base/global-ui.js' %}"></script>
 
 </body>
 </html>

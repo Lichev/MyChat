@@ -5,6 +5,14 @@
 
   <!-- Room topbar -->
   <div class="chat-topbar">
+    <a href="{% url 'public_chat_room' %}"
+       class="chat-topbar__back"
+       aria-label="Back to hub"
+       title="Back to hub">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10 4L6 8L10 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
     <img
       src="{{ current_room.room_picture.url }}"
       alt="{{ current_room.name }}"
@@ -98,40 +106,10 @@
 
 <script src="{% static 'js/chat-script.js' %}"></script>
 
-<script>
-(function() {
-  'use strict';
-
-  let membersFetched = false;
-
-  function updateMembersCount(count) {
-    const el = document.getElementById('members-count');
-    if (el) el.textContent = count;
-  }
-
-  /* Add member on enter */
-  if (!membersFetched) {
-    membersFetched = true;
-    fetch('{% url "add_member_to_room" current_room.id request.user.username %}', {
-      method: 'POST',
-      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-    })
-      .then(function(r) { return r.json(); })
-      .then(function(data) { updateMembersCount(data.members_count); })
-      .catch(function(err) { console.error('Member add error:', err); });
-  }
-
-  /* Remove member on leave.
-     navigator.sendBeacon does not support custom headers, so it cannot carry
-     the X-CSRFToken header required by Django's CSRF middleware. Use fetch
-     with keepalive:true instead — same fire-and-forget behaviour, CSRF-safe. */
-  window.addEventListener('beforeunload', function() {
-    fetch('{% url "remove_member_from_room" current_room.id request.user.username %}', {
-      method: 'POST',
-      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-      keepalive: true
-    });
-  });
-})();
-</script>
+{% comment %}Context for room-membership.js passed via data-* attributes on the hidden element below. No inline executable JS — CSP-compliant.{% endcomment %}
+<div id="room-membership-data" hidden
+     data-add-member-url="{% url 'add_member_to_room' current_room.id request.user.username %}"
+     data-remove-member-url="{% url 'remove_member_from_room' current_room.id request.user.username %}"
+     data-csrf-token="{{ csrf_token }}"></div>
+<script src="{% static 'js/chat_rooms/room-membership.js' %}"></script>
 {% endblock %}

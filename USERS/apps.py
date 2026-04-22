@@ -6,5 +6,5 @@ class UsersConfig(AppConfig):
     name = 'USERS'
 
     def ready(self):
-        # Import signal receivers here when they are added to USERS/receivers.py
-        pass  # noqa: F401
+        # H7: register signal receivers that maintain the UserSession denorm table.
+        import USERS.signals  # noqa: F401

@@ -1,0 +1,21 @@
+{% comment %}
+fingerprint_modal.html — Partial template for the fingerprint modal body.
+
+This template is used as a <template> element for cloneNode() in fingerprint_modal.js.
+The modal is rendered entirely via JS DOM manipulation (textContent only) —
+this file serves as documentation of the modal structure and as a fallback
+reference. fingerprint_modal.js does NOT use innerHTML to insert user-derived content.
+{% endcomment %}
+
+<template id="pm-fingerprint-template">
+  <div class="pm-fingerprint-modal" role="document">
+    <button class="pm-fingerprint-modal__close" type="button" aria-label="Close">×</button>
+    <h2 class="pm-fingerprint-modal__title">Safety Number</h2>
+    <p class="pm-fingerprint-modal__instructions">
+      Compare these digits with your peer in person or over a verified channel.
+      If they match, this conversation is secure.
+    </p>
+    <pre class="pm-fingerprint-modal__number" aria-label="Safety number"></pre>
+    <div class="pm-fingerprint-modal__qr" aria-label="QR code of safety number keys"></div>
+  </div>
+</template>

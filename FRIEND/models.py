@@ -155,40 +155,39 @@ class FriendShipManager(models.Manager):
     def friends(self, user):
         """ return list of all friends """
         key = cache_key("friends", user.pk)
-        friends = cache.get(key)
+        ids = cache.get(key)
 
-        if friends is None:
-            qs = Friend.objects.select_related("from_user").filter(to_user=user)
-            friends = [u.from_user for u in qs]
-            cache.set(key, friends)
+        if ids is None:
+            ids = list(Friend.objects.filter(to_user=user).values_list('from_user_id', flat=True))
+            cache.set(key, ids)
 
-        return friends
+        return list(UserModel.objects.filter(pk__in=ids))
 
     def requests(self, user):
         """ return list of friendship requests """
         key = cache_key("requests", user.pk)
-        requests = cache.get(key)
+        ids = cache.get(key)
 
-        if requests is None:
-            qs = FriendshipRequest.objects.filter(to_user=user)
-            qs = self._friendship_request_select_related(qs, 'from_user', 'to_user')
-            requests = list(qs)
-            cache.set(key, requests)
+        if ids is None:
+            ids = list(FriendshipRequest.objects.filter(to_user=user).values_list('pk', flat=True))
+            cache.set(key, ids)
 
-        return requests
+        qs = FriendshipRequest.objects.filter(pk__in=ids)
+        qs = self._friendship_request_select_related(qs, 'from_user', 'to_user')
+        return list(qs)
 
     def sent_requests(self, user):
         """ return list of sent friendship requests """
         key = cache_key("sent_requests", user.pk)
-        requests = cache.get(key)
+        ids = cache.get(key)
 
-        if requests is None:
-            qs = FriendshipRequest.objects.filter(from_user=user)
-            qs = self._friendship_request_select_related(qs, 'from_user', 'to_user')
-            requests = list(qs)
-            cache.set(key, requests)
+        if ids is None:
+            ids = list(FriendshipRequest.objects.filter(from_user=user).values_list('pk', flat=True))
+            cache.set(key, ids)
 
-        return requests
+        qs = FriendshipRequest.objects.filter(pk__in=ids)
+        qs = self._friendship_request_select_related(qs, 'from_user', 'to_user')
+        return list(qs)
 
     def add_friend(self, from_user, to_user, message=None):
         if from_user == to_user:
@@ -245,19 +244,19 @@ class FriendShipManager(models.Manager):
 
     def are_friends(self, user1, user2):
         """ Check if two users are friends """
-        friends1 = cache.get(cache_key("friends", user1.pk))
-        friends2 = cache.get(cache_key("friends", user2.pk))
+        cached1 = cache.get(cache_key("friends", user1.pk))
+        if cached1 and user2.pk in cached1:
+            return True
 
-        if friends1 and user2 in friends1:
+        cached2 = cache.get(cache_key("friends", user2.pk))
+        if cached2 and user1.pk in cached2:
             return True
-        elif friends2 and user1 in friends2:
+
+        try:
+            Friend.objects.get(to_user=user1, from_user=user2)
             return True
-        else:
-            try:
-                Friend.objects.get(to_user=user1, from_user=user2)
-                return True
-            except Friend.DoesNotExist:
-                return False
+        except Friend.DoesNotExist:
+            return False
 
     def _friendship_request_select_related(self, qs, *fields):
         strategy = getattr(
@@ -300,5 +299,5 @@ class Friend(models.Model):
     def save(self, *args, **kwargs):
         # Ensure users can't be friends with themself
         if self.to_user == self.from_user:
-            raise ValidationError('Users cannot be friends with themselfs')
+            raise ValidationError('Users cannot be friends with themselves')
         super().save(*args, **kwargs)

@@ -1,3 +1,5 @@
+import os
+import unicodedata
 from enum import Enum
 
 from django.contrib.auth.base_user import BaseUserManager
@@ -6,6 +8,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinLengthValidator
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 
 
 class MyAccountManager(BaseUserManager):
@@ -21,16 +24,41 @@ class MyAccountManager(BaseUserManager):
 
     def create_superuser(self, username, password):
         user = self.create_user(username=username, password=password)
-        user.is_admin = True
         user.is_staff = True
         user.is_superuser = True
         user.save(using=self._db)
         return user
 
 
-def validate_alphabetical(value):
-    if not value.isalpha():
-        raise ValidationError('First name should contain only alphabetical letters.')
+# Allowed non-letter characters in a human name (apostrophes, hyphens, spaces).
+_NAME_ALLOWED_EXTRAS = {"'", "’", "-", " "}
+
+
+def validate_human_name(value: str) -> None:
+    """
+    Accept Unicode letters, apostrophes (' and '), hyphens, and spaces.
+    Reject digits, underscores, punctuation, and empty/whitespace-only strings.
+
+    This replaces the old str.isalpha() check which rejected legitimate names
+    such as "O'Neil", "Jean-Luc", "Mary Jane", and CJK characters like "李".
+    """
+    if not value or not value.strip():
+        raise ValidationError(_("Name cannot be empty."))
+    for ch in value:
+        if ch in _NAME_ALLOWED_EXTRAS:
+            continue
+        # Unicode general category "L*" covers letters in all scripts.
+        if unicodedata.category(ch).startswith("L"):
+            continue
+        raise ValidationError(
+            _("Name may only contain letters, spaces, apostrophes, and hyphens."),
+            params={"value": value},
+        )
+
+
+# Deprecated alias — kept so any external code importing validate_alphabetical
+# continues to work without a hard error.
+validate_alphabetical = validate_human_name
 
 
 class ChoicesMixin:
@@ -78,7 +106,7 @@ class ChatUser(AbstractUser):
         max_length=NAME_MAX_LENGTH,
         validators=[
             MinLengthValidator(NAME_MIN_LENGTH),
-            validate_alphabetical
+            validate_human_name
         ],
         blank=False
     )
@@ -87,7 +115,7 @@ class ChatUser(AbstractUser):
         max_length=NAME_MAX_LENGTH,
         validators=[
             MinLengthValidator(NAME_MIN_LENGTH),
-            validate_alphabetical
+            validate_human_name
         ],
         blank=False
     )
@@ -99,8 +127,6 @@ class ChatUser(AbstractUser):
     )
 
     REQUIRED_FIELDS = []
-
-    is_admin = models.BooleanField(default=False)
 
     profile_picture = models.ImageField(
         max_length=255,
@@ -136,7 +162,7 @@ class ChatUser(AbstractUser):
 
     bio = models.TextField(blank=True)
 
-    interests = models.CharField(
+    interest = models.CharField(
         max_length=50,
         choices=INTEREST_CHOICES,
         blank=True,
@@ -152,7 +178,9 @@ class ChatUser(AbstractUser):
         return self.username
 
     def get_profile_picture_filename(self):
-        return str(self.profile_picture)[str(self.profile_picture).index(f'profile_images/{self.pk}/'):]
+        if not self.profile_picture:
+            return ''
+        return os.path.basename(self.profile_picture.name)
 
     def has_perm(self, perm, obj=None):
         if self.is_active and self.is_superuser:
@@ -161,4 +189,42 @@ class ChatUser(AbstractUser):
 
     def has_module_perms(self, app_label):
         return True
+
+
+class UserSession(models.Model):
+    """
+    Denormalised mapping of live Django sessions to their owner.
+
+    Django's default session store encodes the auth user ID inside the
+    session blob, which requires decoding every active session row to find
+    all sessions for a given user (O(N) scan). This table provides an O(1)
+    lookup by user so that account-recovery session invalidation can be done
+    with a simple FK-based DELETE rather than a full-table scan.
+
+    Lifecycle:
+    - Created by the user_logged_in signal on every successful login.
+    - Deleted by the user_logged_out signal on explicit logout.
+    - Cascade-deleted with the user row on account deletion.
+
+    Note: existing live sessions at the time this table is introduced will NOT
+    be backfilled — they will be evicted at their next normal logout. The
+    account-recovery flow still works correctly for those sessions because
+    update_session_auth_hash() rotates the session auth hash on password change,
+    forcing re-authentication on any session not updated through this table.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='user_sessions',
+    )
+    session_key = models.CharField(max_length=40, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'User Session'
+        verbose_name_plural = 'User Sessions'
+
+    def __str__(self):
+        return f"UserSession(user_id={self.user_id}, key={self.session_key[:8]}…)"
 

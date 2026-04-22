@@ -3,6 +3,11 @@
 
 {% block page_title %}Security — Settings — MyChat{% endblock %}
 
+{% block page_js %}
+{% comment %}External script replaces the inline onclick on the rotate-key submit button. CSP: 'self' only — no unsafe-inline.{% endcomment %}
+<script src="{% static 'js/users/profile-settings-security.js' %}"></script>
+{% endblock %}
+
 {% block main_content %}
 <div class="profile-card">
   <div class="profile-card__header">
@@ -46,7 +51,6 @@
           <button
             type="submit"
             class="btn btn-secondary"
-            onclick="return confirm('Generate a new recovery key? Your current key will be permanently invalidated.')"
           >
             {% if has_key %}Rotate recovery key{% else %}Generate recovery key{% endif %}
           </button>

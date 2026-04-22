@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import generic as views
@@ -20,7 +21,8 @@ def _build_search_data(request, query):
 
     user = request.user
 
-    matched_rooms = PublicChatRoom.objects.filter(name__icontains=query)[:10]
+    # Use the user-scoped queryset so private rooms the user cannot access are excluded.
+    matched_rooms = get_public_chat_rooms(user).filter(name__icontains=query)[:10]
     rooms_data = [
         {
             'id': room.id,
@@ -73,7 +75,7 @@ class ChatHubView(HubShellMixin, LoginRequiredMixin, views.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        rooms = get_public_chat_rooms()
+        rooms = get_public_chat_rooms(self.request.user)
         context['public_chat_rooms'] = rooms
         context['last_messages'] = get_last_messages_preview(rooms)
         if self.request.GET.get("view") == "users":
@@ -104,7 +106,11 @@ def chat_info_json(request):
     user = request.user
 
     friends = Friend.objects.friends(user)
-    my_groups = PublicChatRoom.objects.filter(creator=user)
+    my_groups = (
+        PublicChatRoom.objects
+        .filter(Q(creator=user) | Q(admins=user) | Q(members=user))
+        .distinct()
+    )
 
     pending_qs = (
         FriendshipRequest.objects
