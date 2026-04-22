@@ -1,0 +1,659 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Rooms — MyChat{% endblock %}
+{% block nav_rooms_active %}active{% endblock %}
+
+{% block content %}
+<div class="chat-shell">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────── -->
+  <aside class="chat-sidebar">
+
+    <!-- User identity -->
+    <div class="sidebar-identity">
+      <div class="avatar-ring">
+        <img
+          src="{{ user.profile_picture.url }}"
+          alt="{{ user.username }}"
+          class="avatar avatar--sm"
+        >
+      </div>
+      <div class="sidebar-identity__info">
+        <div class="sidebar-identity__name">{{ user.username }}</div>
+        <div class="sidebar-identity__status">Online</div>
+      </div>
+    </div>
+
+    <!-- Room search — form submits to /chat/search/ on non-hub pages;
+         hub JS intercepts and does XHR when #searchResults is present -->
+    <div class="sidebar-search">
+      <form id="sidebarSearchForm" class="search-bar" role="search"
+            action="{% url 'chat_search' %}" method="get">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input
+          id="searchTerminal"
+          type="text"
+          name="q"
+          placeholder="Search rooms &amp; users…"
+          autocomplete="off"
+          aria-label="Search rooms and users"
+        >
+      </form>
+    </div>
+
+    <!-- Conversations nav: Rooms / Users tabs -->
+    <nav class="sidebar-rooms" aria-label="Conversations">
+
+      <div class="sidebar-tabs" role="tablist" aria-label="Sidebar navigation">
+        <button role="tab" id="tab-rooms" aria-selected="true"  aria-controls="panel-rooms" tabindex="0"  class="sidebar-tab sidebar-tab--active">Rooms</button>
+        <button role="tab" id="tab-users" aria-selected="false" aria-controls="panel-users" tabindex="-1" class="sidebar-tab">Users</button>
+      </div>
+
+      <!-- Rooms panel -->
+      <div role="tabpanel" id="panel-rooms" aria-labelledby="tab-rooms" class="sidebar-panel">
+        <ul class="list" id="roomList">
+          <!-- Create room -->
+          <li>
+            <a href="{% url 'create_room' %}" class="room-item-create">
+              <span class="room-item-create__icon" aria-hidden="true">+</span>
+              <span>Create room</span>
+            </a>
+          </li>
+
+          {% for room in public_chat_rooms %}
+          <li>
+            <a href="{% url 'public_chat_messages' room.id %}" class="room-item">
+              <img
+                src="{{ room.room_picture.url }}"
+                alt="{{ room.name }}"
+                class="room-item__img"
+              >
+              <div class="room-item__details">
+                <span class="room-item__name">{{ room.name }}</span>
+                {% with preview=last_messages|default_if_none:""|get_item:room.id %}
+                {% if preview %}
+                <span class="room-item__preview">{{ preview.sender }}: {{ preview.content|truncatechars:28 }}</span>
+                {% endif %}
+                {% endwith %}
+              </div>
+            </a>
+          </li>
+          {% empty %}
+          <li class="empty-state">
+            <p class="empty-state__title">No rooms yet</p>
+            <p class="empty-state__body">Create one to get started</p>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Users panel (friends list — populated via JS) -->
+      <div role="tabpanel" id="panel-users" aria-labelledby="tab-users" class="sidebar-panel" hidden>
+        <ul class="list" id="userList">
+          <li class="empty-state" id="userListSkeleton">Loading friends…</li>
+        </ul>
+      </div>
+
+    </nav>
+
+  </aside>
+
+  <!-- ── MAIN CONTENT ───────────────────────────────────────────── -->
+  {% block right_chat_content %}
+  <main class="chat-main chat-dashboard" aria-label="Chat dashboard">
+
+    <!-- ── SEARCH RESULTS VIEW (hidden until search active) ──────── -->
+    <div class="search-results" id="searchResults" hidden>
+      <h2 class="search-results__heading" id="searchResultsHeading">Search results</h2>
+
+      <div class="search-results__section" id="searchResultsGroups">
+        <h3 class="search-results__section-title">Groups</h3>
+        <ul class="list" id="searchGroupsGrid"></ul>
+        <p class="search-results__empty" id="searchGroupsEmpty" hidden>No groups matched</p>
+      </div>
+
+      <div class="search-results__section" id="searchResultsUsers">
+        <h3 class="search-results__section-title">Users</h3>
+        <div class="search-users-list" id="searchUsersGrid"></div>
+        <p class="search-results__empty" id="searchUsersEmpty" hidden>No users matched</p>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD VIEW (default) ──────────────────────────────── -->
+    <div id="dashboardView">
+
+      <!-- Stats pills -->
+      <div class="dashboard-pills">
+        <a href="{% url 'show_friends' %}" class="dashboard-pill">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <path d="M9.5 3.5a2 2 0 010 2.5M11 8.5c1.1.7 2 2 2 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          Friends
+          <span class="dashboard-pill__count" id="friends-length">0</span>
+        </a>
+        <a href="{% url 'show_friends_request' %}" class="dashboard-pill">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M1 12c0-2.2 1.8-4 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <path d="M10 7v4M8 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          Requests
+          <span class="dashboard-pill__count" id="requests-length">0</span>
+        </a>
+        <span class="dashboard-pill">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <rect x="1" y="3" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M5 3V2a2 2 0 014 0v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          Groups
+          <span class="dashboard-pill__count" id="groups-length">0</span>
+        </span>
+      </div>
+
+      <!-- Pending requests section (hidden until data arrives) -->
+      <section class="dashboard-section" id="pending-requests-section" hidden>
+        <h2 class="dashboard-section__title">Pending requests</h2>
+        <div class="friend-grid" id="pending-requests-list">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+      <!-- Friends section -->
+      <section class="dashboard-section">
+        <h2 class="dashboard-section__title">Friends</h2>
+        <div class="friend-grid" id="row-list-friends">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+      <!-- Groups section -->
+      <section class="dashboard-section">
+        <h2 class="dashboard-section__title">Groups</h2>
+        <div class="friend-grid" id="row-list-groups">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+    </div><!-- /#dashboardView -->
+
+  </main>
+  {% endblock %}
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var CSRF = '{{ csrf_token }}';
+
+  /* ── Helpers ── */
+  function debounce(fn, delay) {
+    var t;
+    return function() {
+      var args = arguments, ctx = this;
+      clearTimeout(t);
+      t = setTimeout(function() { fn.apply(ctx, args); }, delay);
+    };
+  }
+
+  function xhrHeaders() {
+    return { 'X-CSRFToken': CSRF, 'X-Requested-With': 'XMLHttpRequest' };
+  }
+
+  /* ── DOM refs ── */
+  var searchInput       = document.getElementById('searchTerminal');
+  var roomList          = document.getElementById('roomList');
+  var userList          = document.getElementById('userList');
+  var dashboardView     = document.getElementById('dashboardView');
+  var searchResults     = document.getElementById('searchResults');
+  var searchGroupsGrid  = document.getElementById('searchGroupsGrid');
+  var searchUsersGrid   = document.getElementById('searchUsersGrid');
+  var searchGroupsEmpty = document.getElementById('searchGroupsEmpty');
+  var searchUsersEmpty  = document.getElementById('searchUsersEmpty');
+
+  var friendsGrid       = document.getElementById('row-list-friends');
+  var groupsGrid        = document.getElementById('row-list-groups');
+  var requestsSection   = document.getElementById('pending-requests-section');
+  var requestsList      = document.getElementById('pending-requests-list');
+  var friendsCount      = document.getElementById('friends-length');
+  var groupsCount       = document.getElementById('groups-length');
+  var requestsCount     = document.getElementById('requests-length');
+
+  /* ── Sidebar room list — used by unified search to update room items ── */
+  var createRoomUrl = '{% url "create_room" %}';
+  var roomDetailUrlTemplate = '{% url "public_chat_messages" 0 %}'.replace('/0/', '/ROOM_ID/');
+
+  /* ── Sidebar tab switcher (F2) ── */
+  var tabList   = document.querySelector('[role="tablist"]');
+  var tabs      = tabList ? Array.prototype.slice.call(tabList.querySelectorAll('[role="tab"]')) : [];
+  var panels    = tabs.map(function(t) { return document.getElementById(t.getAttribute('aria-controls')); });
+
+  function activateTab(index) {
+    tabs.forEach(function(t, i) {
+      var isActive = i === index;
+      t.setAttribute('aria-selected', String(isActive));
+      t.setAttribute('tabindex', isActive ? '0' : '-1');
+      t.classList.toggle('sidebar-tab--active', isActive);
+      if (panels[i]) {
+        panels[i].hidden = !isActive;
+        if (isActive) panels[i].scrollTop = 0;
+      }
+    });
+  }
+
+  tabs.forEach(function(tab, index) {
+    tab.addEventListener('click', function() { activateTab(index); });
+  });
+
+  if (tabList) {
+    tabList.addEventListener('keydown', function(e) {
+      var current = tabs.indexOf(document.activeElement);
+      if (current === -1) return;
+      var next = current;
+      if (e.key === 'ArrowRight') { next = (current + 1) % tabs.length; }
+      else if (e.key === 'ArrowLeft') { next = (current - 1 + tabs.length) % tabs.length; }
+      else if (e.key === 'Home') { next = 0; }
+      else if (e.key === 'End') { next = tabs.length - 1; }
+      else { return; }
+      e.preventDefault();
+      activateTab(next);
+      tabs[next].focus();
+    });
+  }
+
+  /* ── Show / hide search results vs dashboard ── */
+  function showSearch() {
+    dashboardView.hidden = true;
+    searchResults.hidden = false;
+  }
+  function showDashboard() {
+    dashboardView.hidden = false;
+    searchResults.hidden = true;
+  }
+
+  /* ── Unified search ── */
+  var searchUnifiedUrl = '{% url "search_unified" %}';
+
+  function renderSearchResults(data) {
+    /* Groups */
+    searchGroupsGrid.innerHTML = '';
+    searchGroupsEmpty.hidden = true;
+    if (data.rooms.length) {
+      data.rooms.forEach(function(room) {
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.href = roomDetailUrlTemplate.replace('ROOM_ID', encodeURIComponent(room.id));
+        a.className = 'room-item';
+        var img = document.createElement('img');
+        img.src = room.room_picture_url;
+        img.alt = room.name;
+        img.className = 'room-item__img';
+        var details = document.createElement('div');
+        details.className = 'room-item__details';
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'room-item__name';
+        nameSpan.textContent = room.name;
+        details.appendChild(nameSpan);
+        a.appendChild(img);
+        a.appendChild(details);
+        li.appendChild(a);
+        searchGroupsGrid.appendChild(li);
+      });
+    } else {
+      searchGroupsEmpty.hidden = false;
+    }
+
+    /* Users */
+    searchUsersGrid.innerHTML = '';
+    searchUsersEmpty.hidden = true;
+    if (data.users.length) {
+      data.users.forEach(function(user) {
+        renderSearchUserCard(user);
+      });
+    } else {
+      searchUsersEmpty.hidden = false;
+    }
+  }
+
+  function renderSearchUserCard(user) {
+    var row = document.createElement('div');
+    row.className = 'search-user-row';
+    row.dataset.userId = user.id;
+    row.dataset.username = user.username;
+
+    var avatarWrap = document.createElement('a');
+    var profileUrl = '{% url "public-profile" "USERNAME" %}'.replace('USERNAME', encodeURIComponent(user.username));
+    avatarWrap.href = profileUrl;
+    avatarWrap.className = 'search-user-row__identity';
+
+    var img = document.createElement('img');
+    img.src = user.avatar;
+    img.alt = user.username;
+    img.className = 'search-user-row__avatar';
+
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'search-user-row__name';
+    nameSpan.textContent = user.username;
+
+    avatarWrap.appendChild(img);
+    avatarWrap.appendChild(nameSpan);
+    row.appendChild(avatarWrap);
+
+    var btn = buildUserActionBtn(user);
+    row.appendChild(btn);
+
+    searchUsersGrid.appendChild(row);
+  }
+
+  function buildUserActionBtn(user) {
+    var btn = document.createElement('button');
+    btn.className = 'search-user-btn';
+
+    if (user.is_friend) {
+      btn.textContent = 'Friends';
+      btn.className += ' search-user-btn--info';
+      btn.disabled = true;
+    } else if (user.has_pending_outgoing_request) {
+      btn.textContent = 'Pending';
+      btn.className += ' search-user-btn--muted';
+      btn.disabled = true;
+    } else if (user.has_pending_incoming_request) {
+      /* Can't POST accept from here (no request_id in search payload) — scroll to dashboard section */
+      btn.textContent = 'Accept';
+      btn.className += ' search-user-btn--primary';
+      btn.addEventListener('click', function() {
+        showDashboard();
+        var section = document.getElementById('pending-requests-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    } else {
+      btn.textContent = 'Add friend';
+      btn.className += ' search-user-btn--primary';
+      btn.addEventListener('click', function() {
+        btn.disabled = true;
+        btn.textContent = '…';
+        fetch('/friend/add/' + encodeURIComponent(user.username) + '/', {
+          method: 'POST',
+          headers: xhrHeaders()
+        })
+          .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+          .then(function() {
+            btn.textContent = 'Pending';
+            btn.className = btn.className.replace('search-user-btn--primary', 'search-user-btn--muted');
+            btn.disabled = true;
+          })
+          .catch(function(err) {
+            console.error('Add friend error:', err);
+            btn.disabled = false;
+            btn.textContent = 'Add friend';
+          });
+      });
+    }
+
+    return btn;
+  }
+
+  var sidebarSearchForm = document.getElementById('sidebarSearchForm');
+
+  /* On hub: intercept submit + debounced input → XHR inline results.
+     On non-hub pages: #searchResults is absent, so form submits naturally
+     to /chat/search/ (full-page results). */
+  if (searchInput && searchResults && dashboardView) {
+    /* Intercept form submit on hub so enter-key doesn't navigate away */
+    if (sidebarSearchForm) {
+      sidebarSearchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+      });
+    }
+
+    searchInput.addEventListener('input', debounce(function() {
+      var term = this.value.trim();
+      if (!term) {
+        showDashboard();
+        return;
+      }
+      showSearch();
+      fetch(searchUnifiedUrl + '?q=' + encodeURIComponent(term), {
+        headers: { 'X-CSRFToken': CSRF }
+      })
+        .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data) { renderSearchResults(data); })
+        .catch(function(err) { console.error('Search error:', err); });
+    }, 300));
+  }
+
+  /* ── Accept / Reject request handlers — delegated on #pending-requests-list ── */
+  function buildRequestCard(req) {
+    var card = document.createElement('div');
+    card.className = 'request-card';
+    card.dataset.requestId = req.request_id;
+
+    var img = document.createElement('img');
+    img.src = req.sender_avatar;
+    img.alt = req.sender_username;
+    img.className = 'request-card__avatar';
+
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'request-card__name';
+    nameSpan.textContent = req.sender_username;
+
+    var actions = document.createElement('div');
+    actions.className = 'request-card__actions';
+
+    var acceptBtn = document.createElement('button');
+    acceptBtn.className = 'btn btn-primary btn-sm';
+    acceptBtn.dataset.action = 'accept';
+    acceptBtn.dataset.requestId = req.request_id;
+    acceptBtn.textContent = 'Accept';
+
+    var rejectBtn = document.createElement('button');
+    rejectBtn.className = 'btn btn-ghost btn-sm';
+    rejectBtn.dataset.action = 'reject';
+    rejectBtn.dataset.requestId = req.request_id;
+    rejectBtn.textContent = 'Reject';
+
+    actions.appendChild(acceptBtn);
+    actions.appendChild(rejectBtn);
+    card.appendChild(img);
+    card.appendChild(nameSpan);
+    card.appendChild(actions);
+    return card;
+  }
+
+  /* Delegated listener — reads data-action and data-request-id from clicked button */
+  if (requestsList) {
+    requestsList.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var action = btn.dataset.action;
+      var requestId = btn.dataset.requestId;
+      var card = btn.closest('.request-card');
+      if (!requestId || !card) return;
+
+      if (action === 'accept') {
+        fetch('/friend/accept/' + encodeURIComponent(requestId) + '/', {
+          method: 'POST',
+          headers: xhrHeaders()
+        })
+          .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+          .then(function(data) {
+            card.remove();
+            decrementCount(requestsCount);
+            checkRequestsSectionEmpty();
+            if (data.new_friend) {
+              appendFriendCard(data.new_friend);
+              appendFriendToSidebar(data.new_friend);
+              incrementCount(friendsCount);
+            }
+          })
+          .catch(function(err) { console.error('Accept error:', err); });
+
+      } else if (action === 'reject') {
+        fetch('/friend/reject/' + encodeURIComponent(requestId) + '/', {
+          method: 'POST',
+          headers: xhrHeaders()
+        })
+          .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+          .then(function() {
+            card.remove();
+            decrementCount(requestsCount);
+            checkRequestsSectionEmpty();
+          })
+          .catch(function(err) { console.error('Reject error:', err); });
+      }
+    });
+  }
+
+  function checkRequestsSectionEmpty() {
+    if (requestsList && requestsList.children.length === 0 && requestsSection) {
+      requestsSection.hidden = true;
+    }
+  }
+
+  function decrementCount(el) {
+    if (!el) return;
+    var n = parseInt(el.textContent, 10);
+    if (!isNaN(n) && n > 0) el.textContent = n - 1;
+  }
+
+  function incrementCount(el) {
+    if (!el) return;
+    var n = parseInt(el.textContent, 10);
+    if (!isNaN(n)) el.textContent = n + 1;
+  }
+
+  function appendFriendCard(friend) {
+    if (!friendsGrid) return;
+    /* Remove "no friends" placeholder if present */
+    var placeholder = friendsGrid.querySelector('p');
+    if (placeholder) placeholder.remove();
+
+    var profileUrl = '{% url "public-profile" "USERNAME" %}'.replace('USERNAME', encodeURIComponent(friend.username));
+    var card = document.createElement('a');
+    card.href = profileUrl;
+    card.className = 'friend-card';
+    var img = document.createElement('img');
+    img.src = friend.avatar || '';
+    img.alt = friend.username;
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'friend-card__name';
+    nameSpan.textContent = friend.username;
+    card.appendChild(img);
+    card.appendChild(nameSpan);
+    friendsGrid.appendChild(card);
+  }
+
+  /* F3 — append friend to sidebar Users panel */
+  function appendFriendToSidebar(friend) {
+    if (!userList) return;
+    /* Remove skeleton/empty-state on first real entry */
+    var skeleton = document.getElementById('userListSkeleton');
+    if (skeleton) skeleton.remove();
+    var emptyLi = userList.querySelector('.empty-state');
+    if (emptyLi) emptyLi.remove();
+
+    var profileUrl = '{% url "public-profile" "USERNAME" %}'.replace('USERNAME', encodeURIComponent(friend.username));
+    var li = document.createElement('li');
+    var a = document.createElement('a');
+    a.href = profileUrl;
+    a.className = 'user-row';
+
+    var img = document.createElement('img');
+    img.src = friend.avatar || '';
+    img.alt = friend.username;
+    img.className = 'user-row__avatar';
+
+    var info = document.createElement('div');
+    info.className = 'user-row__info';
+
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'user-row__name';
+    nameSpan.textContent = friend.username;
+
+    var previewSpan = document.createElement('span');
+    previewSpan.className = 'user-row__preview';
+    previewSpan.textContent = friend.last_dm_preview ? friend.last_dm_preview : '';
+
+    info.appendChild(nameSpan);
+    info.appendChild(previewSpan);
+    a.appendChild(img);
+    a.appendChild(info);
+    li.appendChild(a);
+    userList.appendChild(li);
+  }
+
+  /* ── Dashboard load (friends, groups, pending requests) ── */
+  window.addEventListener('DOMContentLoaded', function() {
+    fetch('{% url "chat_info" %}', { headers: { 'X-CSRFToken': CSRF } })
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function(data) {
+
+        /* Pending requests */
+        if (data.pending_requests && data.pending_requests.length > 0) {
+          if (requestsSection) requestsSection.hidden = false;
+          data.pending_requests.forEach(function(req) {
+            requestsList.appendChild(buildRequestCard(req));
+          });
+        }
+        if (requestsCount) requestsCount.textContent = data.requests_count;
+
+        /* Friends — populate dashboard grid AND sidebar Users panel */
+        if (friendsCount) friendsCount.textContent = data.friends.length;
+        /* Clear skeleton before rendering */
+        var skeleton = document.getElementById('userListSkeleton');
+        if (skeleton) skeleton.remove();
+        data.friends.forEach(function(friend) {
+          appendFriendCard(friend);
+          appendFriendToSidebar(friend);
+        });
+        if (!data.friends.length) {
+          if (friendsGrid) {
+            var p = document.createElement('p');
+            p.style.cssText = 'padding:var(--s-4);color:var(--text-3);font-size:var(--font-size-sm)';
+            p.textContent = 'No friends yet — search for users to add them';
+            friendsGrid.appendChild(p);
+          }
+          if (userList) {
+            var li = document.createElement('li');
+            li.className = 'empty-state';
+            li.textContent = 'No friends yet — search for users to add them';
+            userList.appendChild(li);
+          }
+        }
+
+        /* Groups */
+        if (groupsCount) groupsCount.textContent = data.groups_data.length;
+        data.groups_data.forEach(function(group) {
+          var card = document.createElement('a');
+          card.href = '#';
+          card.className = 'friend-card';
+          var img = document.createElement('img');
+          img.src = group.avatar;
+          img.alt = group.name;
+          var nameSpan = document.createElement('span');
+          nameSpan.className = 'friend-card__name';
+          nameSpan.textContent = group.name;
+          card.appendChild(img);
+          card.appendChild(nameSpan);
+          groupsGrid.appendChild(card);
+        });
+        if (!data.groups_data.length && groupsGrid) {
+          var p = document.createElement('p');
+          p.style.cssText = 'padding:var(--s-4);color:var(--text-3);font-size:var(--font-size-sm)';
+          p.textContent = 'No groups yet';
+          groupsGrid.appendChild(p);
+        }
+      })
+      .catch(function(err) { console.error('Dashboard load error:', err); });
+  });
+})();
+</script>
+{% endblock %}

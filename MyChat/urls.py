@@ -8,7 +8,7 @@ urlpatterns = [
     path('', include('CORE.urls')),
     path('accounts/', include('USERS.urls')),
     path('friend/', include('FRIEND.urls')),
-    path('rooms/', include('CHAT_ROOMS.urls')),
+    path('chat/', include('CHAT.urls')),
 
 ]
 

@@ -14,7 +14,7 @@
   {% if page_obj %}
   <div class="search-result-list">
     {% for account, info in page_obj %}
-    <div class="search-result-item" style="cursor:default">
+    <div class="search-result-item">
       <img
         src="{{ account.profile_picture.url }}"
         alt="{{ account.full_name }}"
@@ -23,9 +23,9 @@
       >
       <div class="search-result-item__info">
         <div class="search-result-item__name">{{ account.full_name }}</div>
-        <div style="font-size:var(--font-size-xs);color:var(--text-3);font-family:var(--font-mono)">@{{ account.username }}</div>
+        <div class="search-result-item__sub" style="color:var(--text-3);font-family:var(--font-mono)">@{{ account.username }}</div>
       </div>
-      <div style="display:flex;gap:var(--s-2);margin-left:auto;flex-shrink:0">
+      <div class="search-result-item__action" style="display:flex;gap:var(--s-2);align-items:center">
 
         {% if not info.is_self and not info.is_friend %}
           {% if info.has_sent_request %}
@@ -63,12 +63,12 @@
 
   <!-- Pagination -->
   {% if page_obj.has_other_pages %}
-  <nav style="display:flex;align-items:center;gap:var(--s-3);margin-top:var(--s-8);justify-content:center" aria-label="Pagination">
+  <nav class="search-results-page__pagination" aria-label="Pagination">
     {% if page_obj.has_previous %}
       <a href="?query={{ query|urlencode }}&page=1" class="btn btn-ghost btn-sm">First</a>
       <a href="?query={{ query|urlencode }}&page={{ page_obj.previous_page_number }}" class="btn btn-ghost btn-sm">Previous</a>
     {% endif %}
-    <span style="font-size:var(--font-size-sm);color:var(--text-3)">
+    <span class="search-results-page__page-info">
       Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
     </span>
     {% if page_obj.has_next %}

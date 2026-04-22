@@ -134,19 +134,13 @@ function sendMessage() {
   messageInput.focus();
 }
 
+// Form submit handles both button click and Enter key in the text input.
+// A separate keydown listener for Enter is intentionally omitted — it would
+// double-fire with the submit event in some browsers, sending the message twice.
 if (form) {
   form.addEventListener('submit', function(e) {
     e.preventDefault();
     sendMessage();
-  });
-}
-
-if (messageInput) {
-  messageInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
   });
 }
 

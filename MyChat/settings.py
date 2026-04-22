@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'CORE',
     'FRIEND',
     'CHAT_ROOMS',
+    'CHAT',
+    'PRIVATE_MESSAGES',
 
     'channels',
 ]
@@ -170,7 +172,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'USERS.ChatUser'
-LOGIN_REDIRECT_URL = reverse_lazy('index')
+LOGIN_REDIRECT_URL = reverse_lazy('public_chat_room')
 LOGOUT_REDIRECT_URL = reverse_lazy('index')
 
 _LOG_LEVEL = os.environ.get('LOG_LEVEL', 'WARNING')

@@ -1,12 +1,10 @@
-from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views import generic as views
 from .models import PublicChatRoom, Message
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
-from .models import PublicChatRoom
 from .forms import PublicChatRoomForm
-from django.db.models import Q, Max, F, Subquery, OuterRef
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
@@ -14,74 +12,11 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from functools import reduce
 import operator
-from FRIEND.models import Friend
+from CHAT_ROOMS.services import get_public_chat_rooms, get_last_messages_preview
 
 UserModel = get_user_model()
 
 PAGE_SIZE = 25
-
-
-def get_public_chat_rooms():
-    # Annotate each room with the maximum timestamp of its messages
-    rooms_with_latest_message = PublicChatRoom.objects.annotate(
-        latest_message_timestamp=Max('messages__timestamp')
-    )
-
-    # Order the rooms by the latest message timestamp in descending order
-    sorted_rooms = rooms_with_latest_message.order_by(
-        F('latest_message_timestamp').desc(nulls_last=True)
-    )
-
-    return sorted_rooms
-
-
-def get_last_messages_preview(rooms):
-    """Return a dict {room_id: last_message_preview_str} for the given rooms queryset.
-
-    Uses a single subquery per room — no N+1.
-    The preview is truncated to 80 characters for sidebar display.
-    """
-    latest_message_ids = (
-        Message.objects
-        .filter(room=OuterRef('pk'))
-        .order_by('-timestamp')
-        .values('id')[:1]
-    )
-    rooms_with_last = rooms.annotate(last_message_id=Subquery(latest_message_ids))
-
-    last_message_ids = [r.last_message_id for r in rooms_with_last if r.last_message_id]
-    messages = (
-        Message.objects
-        .filter(id__in=last_message_ids)
-        .select_related('sender')
-    )
-    msg_by_id = {m.id: m for m in messages}
-
-    preview = {}
-    for room in rooms_with_last:
-        msg = msg_by_id.get(room.last_message_id)
-        if msg:
-            content = msg.content if len(msg.content) <= 60 else msg.content[:57] + '...'
-            preview[room.id] = {
-                'sender': msg.sender.username,
-                'content': content,
-                'timestamp': msg.timestamp.isoformat(),
-            }
-        else:
-            preview[room.id] = None
-    return preview
-
-
-# Create your views here.
-class PublicChatRoomView(LoginRequiredMixin, views.TemplateView):
-    template_name = 'chat_rooms/public_chat_rooms.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        rooms = get_public_chat_rooms()
-        context['public_chat_rooms'] = rooms
-        context['last_messages'] = get_last_messages_preview(rooms)
-        return context
 
 
 class PublicChatRoomMessages(LoginRequiredMixin, views.ListView):
@@ -157,10 +92,6 @@ class PublicChatRoomEditView(LoginRequiredMixin, views.UpdateView):
     pk_url_kwarg = 'room_id'
     success_url = reverse_lazy('public_chat_room')
 
-    def get_object(self, queryset=None):
-        room_id = self.kwargs.get(self.pk_url_kwarg)
-        return get_object_or_404(PublicChatRoom, id=room_id)
-
     def get_queryset(self):
         return PublicChatRoom.objects.filter(Q(admins=self.request.user) | Q(creator=self.request.user))
 
@@ -229,7 +160,7 @@ def search_chat_rooms(request, query):
         {
             'id': room.id,
             'name': room.name,
-            'room_picture_url': request.build_absolute_uri(room.room_picture.url),
+            'room_picture_url': request.build_absolute_uri(room.room_picture.url) if room.room_picture else "",
         }
         for room in results
     ]
@@ -237,29 +168,3 @@ def search_chat_rooms(request, query):
     return JsonResponse({'data': data})
 
 
-@login_required
-def chat_rooms_info_json(request):
-    user = request.user
-
-    friends = Friend.objects.friends(user)
-    my_groups = PublicChatRoom.objects.filter(creator=user)
-    requests_count = len(Friend.objects.requests(user))
-
-    friends_data = [
-        {
-            'id': friend.id,
-            'username': friend.username,
-            'avatar': friend.profile_picture.url,
-        }
-        for friend in friends
-    ]
-    my_groups_data = [
-        {
-            'id': group.id,
-            'name': group.name,
-            'avatar': group.room_picture.url,
-        }
-        for group in my_groups
-    ]
-
-    return JsonResponse({'friends': friends_data, 'groups_data': my_groups_data, 'requests_count': requests_count})

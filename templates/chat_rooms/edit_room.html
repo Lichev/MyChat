@@ -1,69 +1,70 @@
-{% extends 'chat_rooms/public_chat_rooms.html' %}
-
+{% extends 'chat/hub.html' %}
 {% load static %}
 
 {% block right_chat_content %}
-    <section class='right-chat chat-handler'>
-        <div class="user-handler user-handler-chat">
-            <h2>Edit {{ room.name }}</h2>
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
+<main class="chat-main" style="align-items:center;justify-content:center;padding:var(--s-8)">
 
-                {% if is_admin %}
-                    <div class="user-box">
-                        <label>Group name:</label>
-                        {{ form.name }}
-                        {% if form.name.errors %}
-                            <div class="form-errors">
-                                {{ form.name.errors }}
-                            </div>
+  <div style="width:100%;max-width:480px">
+    <div class="profile-card">
+      <div class="profile-card__header">
+        <h1 class="profile-card__title">Edit room</h1>
+        <p class="profile-card__subtitle">{{ room.name }}</p>
+      </div>
+      <div class="profile-card__body">
 
-                        {% endif %}
-                    </div>
+        {% if is_admin %}
+        <form method="post" enctype="multipart/form-data" class="settings-form" novalidate>
+          {% csrf_token %}
 
-                    <div class="user-box">
-                        <label>Private group:</label>
-                        {{ form.is_private }}
-                        {% if form.is_private.errors %}
-                            <div class="form-errors">
-                                {{ form.is_private.errors }}
-                            </div>
-                        {% endif %}
-                    </div>
+          <div class="user-box">
+            <label for="{{ form.name.id_for_label }}">Room name</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.name.errors }}</div>
+            {% endif %}
+          </div>
 
-                    <div class="user-box">
-                        <label>For friends only:</label>
-                        {{ form.for_friends_only }}
-                        {% if form.for_friends_only.errors %}
-                            <div class="form-errors">
-                                {{ form.for_friends_only.errors }}
-                            </div>
-                        {% endif %}
-                    </div>
+          <div style="display:flex;flex-direction:column;gap:var(--s-3)">
+            <label style="display:flex;align-items:center;gap:var(--s-3);cursor:pointer">
+              {{ form.is_private }}
+              <span style="font-size:var(--font-size-sm);color:var(--text-2)">Private room</span>
+            </label>
+            {% if form.is_private.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.is_private.errors }}</div>
+            {% endif %}
 
+            <label style="display:flex;align-items:center;gap:var(--s-3);cursor:pointer">
+              {{ form.for_friends_only }}
+              <span style="font-size:var(--font-size-sm);color:var(--text-2)">Friends only</span>
+            </label>
+            {% if form.for_friends_only.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.for_friends_only.errors }}</div>
+            {% endif %}
+          </div>
 
-                    <div class="user-box">
-                        <label>Add admin:</label>
-                        {{ form.admins }}
-                        {% if form.admins.errors %}
-                            <div class="form-errors">
-                                {{ form.admins.errors }}
-                            </div>
-                        {% endif %}
-                    </div>
+          <div class="user-box">
+            <label for="{{ form.admins.id_for_label }}">Admins</label>
+            {{ form.admins }}
+            {% if form.admins.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.admins.errors }}</div>
+            {% endif %}
+          </div>
 
+          <div class="settings-form-actions">
+            <button type="submit" class="btn btn-primary">Save changes</button>
+          </div>
+        </form>
 
-
-
-                    <button type="submit" class="primary-btn">Update</button>
-                {% else %}
-                    <h1>Under construction</h1>
-                {% endif %}
-
-
-            </form>
+        {% else %}
+        <div class="empty-state">
+          <p class="empty-state__title">Under construction</p>
+          <p class="empty-state__body">Only admins can edit room settings.</p>
         </div>
-    </section>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+</main>
 {% endblock %}
-
-

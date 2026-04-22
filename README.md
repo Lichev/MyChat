@@ -240,7 +240,7 @@ The app will be available at: **http://127.0.0.1:8000**
 | `http://127.0.0.1:8000/` | Home page |
 | `http://127.0.0.1:8000/accounts/register/` | Register a new account |
 | `http://127.0.0.1:8000/accounts/login/` | Log in |
-| `http://127.0.0.1:8000/rooms/` | Public chat rooms |
+| `http://127.0.0.1:8000/chat/` | Unified chat dashboard |
 | `http://127.0.0.1:8000/admin/` | Django admin |
 
 ---
@@ -278,44 +278,6 @@ redis-server
 ```
 
 Without `REDIS_URL`, the app falls back to `InMemoryChannelLayer` which only works with a **single** process.
-
----
-
-## Project Structure
-
-```
-MyChat/
-├── MyChat/              # Project config (settings, urls, asgi, wsgi)
-├── USERS/               # User auth, profiles, email verification
-├── CORE/                # Home page, contact form
-├── FRIEND/              # Friend requests and relationships
-├── CHAT_ROOMS/          # Public chat rooms, WebSocket consumer
-├── templates/           # HTML templates
-├── static/              # CSS, JS, images
-├── media/               # User-uploaded files (profile pictures, room images)
-├── requirements.txt
-├── .env.example
-└── manage.py
-```
-
----
-
-## Common Issues
-
-### `ImproperlyConfigured: SECRET_KEY environment variable is not set`
-You have not created your `.env` file or `SECRET_KEY` is missing. Follow Step 4.
-
-### `django.db.utils.OperationalError: could not connect to server`
-PostgreSQL is not running, or `DB_HOST`/`DB_PORT`/credentials in `.env` are wrong. Check Step 5.
-
-### WebSocket connection refused
-You are using `runserver` instead of `daphne`. Use the Daphne command from Step 9.
-
-### Activation email not arriving
-Set `EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'` in settings for development so tokens print to the terminal.
-
-### `No module named 'channels_redis'`
-Run `pip install -r requirements.txt` again inside your activated virtual environment.
 
 ---
 

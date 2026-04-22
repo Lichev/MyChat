@@ -92,7 +92,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'username': user.username,
                 # profile_picture.url accesses the ImageField descriptor on the already-
                 # loaded user instance — no extra DB query.
-                'sender_avatar': user.profile_picture.url,
+                'sender_avatar': user.profile_picture.url if user.profile_picture else "",
                 'message_id': saved.pk,
                 'timestamp': saved.timestamp.isoformat(),
                 'room': self.room_name,

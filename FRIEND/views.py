@@ -27,48 +27,86 @@ def get_friendship_context_object_list_name():
 @login_required
 def friendship_add_friend(request, to_username):
     """Create a FriendshipRequest"""
-    ctx = {"to_username": to_username}
+    is_xhr = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if request.method == "POST":
         to_user = get_object_or_404(UserModel, username=to_username)
         from_user = request.user
         try:
-            Friend.objects.add_friend(from_user, to_user)
+            friendship_request = Friend.objects.add_friend(from_user, to_user)
         except AlreadyExistsError as e:
-            ctx["errors"] = ["%s" % e]
-        else:
-            referer = request.META.get('HTTP_REFERER')
-            if referer:
-                return redirect(referer)
-            else:
-                return HttpResponseBadRequest("HTTP Referer header not present.")
+            if is_xhr:
+                return JsonResponse({'status': 'error', 'detail': str(e)}, status=400)
+            return redirect(request.META.get('HTTP_REFERER', '/'))
 
+        if is_xhr:
+            return JsonResponse({
+                'status': 'ok',
+                'request_id': friendship_request.id,
+                'receiver_username': to_user.username,
+            })
+
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return redirect(referer)
+        return HttpResponseBadRequest("HTTP Referer header not present.")
+
+    if is_xhr:
+        return JsonResponse({'status': 'error', 'detail': 'POST required'}, status=405)
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
 @login_required
 def friendship_accept(request, friendship_request_id):
     """Accept a friendship request"""
+    is_xhr = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if request.method == "POST":
         f_request = get_object_or_404(
-            FriendshipRequest.objects.filter(id=friendship_request_id),  # Adjusted filter
+            FriendshipRequest, id=friendship_request_id, to_user=request.user,
         )
+        new_friend = f_request.from_user
         f_request.accept()
+
+        if is_xhr:
+            return JsonResponse({
+                'status': 'ok',
+                'request_id': friendship_request_id,
+                'action': 'accepted',
+                'new_friend': {
+                    'id': new_friend.id,
+                    'username': new_friend.username,
+                    'avatar': new_friend.profile_picture.url if new_friend.profile_picture else "",
+                },
+            })
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
-    return redirect(request.META.get('HTTP_REFERER', '/'), )
+    if is_xhr:
+        return JsonResponse({'status': 'error', 'detail': 'POST required'}, status=405)
+    return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
 @login_required
 def friendship_reject(request, friendship_request_id):
     """Reject a friendship request"""
+    is_xhr = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if request.method == "POST":
         f_request = get_object_or_404(
-            FriendshipRequest.objects.filter(id=friendship_request_id),  # Adjusted filter
+            FriendshipRequest, id=friendship_request_id, to_user=request.user,
         )
         f_request.reject()
+
+        if is_xhr:
+            return JsonResponse({
+                'status': 'ok',
+                'request_id': friendship_request_id,
+                'action': 'rejected',
+            })
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
+    if is_xhr:
+        return JsonResponse({'status': 'error', 'detail': 'POST required'}, status=405)
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 

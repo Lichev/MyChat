@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if query %}Search: {{ query }}{% else %}Search{% endif %} — MyChat{% endblock %}
+
+{% block content %}
+<div class="search-results-page">
+
+  <h1 class="search-results-page__title">
+    {% if query %}
+      Results for <span>"{{ query }}"</span>
+    {% else %}
+      Search
+    {% endif %}
+  </h1>
+
+  {% if query %}
+
+    <!-- Rooms section -->
+    <section class="search-results-page__section">
+      <h2 class="search-results-page__section-title">Rooms</h2>
+      {% if rooms %}
+      <ul class="list search-result-list">
+        {% for room in rooms %}
+        <li>
+          <a href="{% url 'public_chat_messages' room.id %}" class="search-result-item">
+            <img
+              src="{{ room.room_picture_url }}"
+              alt="{{ room.name }}"
+              class="avatar avatar--md"
+              width="48" height="48"
+            >
+            <div class="search-result-item__info">
+              <div class="search-result-item__name">{{ room.name }}</div>
+            </div>
+            <span class="search-result-item__action">
+              <span class="btn btn-ghost btn-sm">Join</span>
+            </span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="search-results-page__empty">No rooms matched</p>
+      {% endif %}
+    </section>
+
+    <!-- Users section -->
+    <section class="search-results-page__section">
+      <h2 class="search-results-page__section-title">Users</h2>
+      {% if users %}
+      <div class="search-result-list" id="searchPageUserList">
+        {% for user in users %}
+        <div class="search-result-item" data-user-id="{{ user.id }}" data-username="{{ user.username }}">
+          <img
+            src="{{ user.avatar }}"
+            alt="{{ user.username }}"
+            class="avatar avatar--md"
+            width="48" height="48"
+          >
+          <div class="search-result-item__info">
+            <div class="search-result-item__name">{{ user.username }}</div>
+          </div>
+          <div class="search-result-item__action">
+            {% if user.is_friend %}
+              <span class="badge badge-online">Friends</span>
+            {% elif user.has_pending_outgoing_request %}
+              <button
+                class="btn btn-ghost btn-sm"
+                disabled
+              >Pending</button>
+            {% elif user.has_pending_incoming_request %}
+              <button
+                class="btn btn-primary btn-sm js-accept-request"
+                data-username="{{ user.username }}"
+              >Accept</button>
+            {% else %}
+              <button
+                class="btn btn-primary btn-sm js-add-friend"
+                data-username="{{ user.username }}"
+              >Add friend</button>
+            {% endif %}
+            <a
+              href="{% url 'public-profile' user.username %}"
+              class="btn btn-ghost btn-sm"
+            >View profile</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="search-results-page__empty">No users matched</p>
+      {% endif %}
+    </section>
+
+  {% else %}
+  <div class="empty-state">
+    <p class="empty-state__title">Enter a search term above</p>
+    <p class="empty-state__body">Search for rooms or users by name</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var CSRF = '{{ csrf_token }}';
+
+  function reloadPage() { window.location.reload(); }
+
+  document.querySelectorAll('.js-add-friend').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var username = this.dataset.username;
+      btn.disabled = true;
+      btn.textContent = '…';
+      fetch('/friend/add/' + encodeURIComponent(username) + '/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF, 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function() {
+          btn.textContent = 'Pending';
+          btn.className = btn.className.replace('btn-primary', 'btn-ghost');
+        })
+        .catch(function(err) {
+          console.error('Add friend error:', err);
+          btn.disabled = false;
+          btn.textContent = 'Add friend';
+        });
+    });
+  });
+
+  document.querySelectorAll('.js-accept-request').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      /* No request_id on this page — navigate to hub to accept from pending section */
+      window.location.href = '{% url "public_chat_room" %}';
+    });
+  });
+}());
+</script>
+{% endblock %}
