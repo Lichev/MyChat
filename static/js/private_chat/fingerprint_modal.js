@@ -54,8 +54,11 @@
   function _buildQrPayload(selfIk, peerIk, selfUid, peerUid) {
     // QR payload: base64url(selfIk_bytes || peerIk_bytes || selfUid_utf8 || '|' || peerUid_utf8)
     const sodium   = global.sodium;
-    const selfBytes = sodium.from_base64(selfIk);
-    const peerBytes = sodium.from_base64(peerIk);
+    // Olm identity keys are standard base64 (no padding) — decode with the
+    // matching variant, not libsodium-js's URL-safe default.
+    const olmVariant = sodium.base64_variants.ORIGINAL_NO_PADDING;
+    const selfBytes = sodium.from_base64(selfIk, olmVariant);
+    const peerBytes = sodium.from_base64(peerIk, olmVariant);
     const enc       = new TextEncoder();
     const selfUidB  = enc.encode(String(selfUid));
     const peerUidB  = enc.encode(String(peerUid));

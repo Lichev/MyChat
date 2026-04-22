@@ -1,20 +1,30 @@
 /**
- * safety_number.js — Signal v2 safety number derivation.
+ * safety_number.js — Signal-inspired 60-digit fingerprint.
  *
- * Algorithm (blueprint § "Safety number (60-digit)"):
- * - For each participant: input = IK_pub_ed25519_bytes + user_id_decimal_utf8_bytes
+ * IMPORTANT: This is NOT bit-for-bit compatible with libsignal's
+ * NumericFingerprintGenerator. Divergences from Signal v2:
+ *   - This implementation hashes with SHA-256; Signal v2 uses SHA-512.
+ *   - Each iteration is `h = SHA-256(h)`; Signal v2 re-injects the pubkey
+ *     every round as `h = SHA-512(h || pubKey)`.
+ * The iteration count (5200 per participant) and canonical sort-order
+ * match Signal v2, but the digest and loop body do not. Users who
+ * verify the 60-digit number against a libsignal-derived value will
+ * see a mismatch — this is internal to MyChat, not interoperable.
+ *
+ * Algorithm:
+ * - For each participant: input = IK_pub_ed25519_bytes + user_id_decimal_utf8_bytes.
  * - Sort participants by IK_pub_ed25519 (ascending byte comparison).
- * - Concatenate the two sorted inputs: combined = input_a + input_b
- * - Iterate SHA-256 5200 times starting with combined.
- * - Extract 30 decimal digits from each participant's iteration result,
- *   using Signal's iterative extraction: 6 groups of 5 digits.
- * - Final result: 60 digits total — 6 groups from participant 1 + 6 from participant 2.
+ * - For each sorted participant independently: iterate SHA-256 5200 times
+ *   starting from that participant's input (no pubkey re-injection).
+ * - Extract 30 decimal digits from each participant's final hash
+ *   as 6 groups of 5 digits (big-endian uint40 mod 100000 per 5 bytes).
+ * - Final result: 60 digits total — 30 from participant 1 + 30 from participant 2.
  * - Format: 12 groups of 5 digits, space-separated, newline after first 6.
  *
  * compute(selfIk, selfUid, peerIk, peerUid) → 60-digit string
  * format(digits)                             → formatted string (spaces + midline break)
  *
- * This is computed entirely client-side from server-fetched public keys.
+ * Computed entirely client-side from server-fetched public keys.
  * The server NEVER computes or transmits a safety number suggestion.
  */
 
@@ -23,8 +33,11 @@
 (function (global) {
 
   /**
-   * Signal v2 fingerprint for one participant:
-   * 5200 iterations of SHA-256 over iterated hash, yielding 30 decimal digits.
+   * Per-participant fingerprint:
+   * 5200 iterations of SHA-256 (h = SHA-256(h)) over the participant's
+   * input, yielding 30 decimal digits. NOTE: This is NOT the same as
+   * Signal v2's per-participant fingerprint, which uses SHA-512 and
+   * re-injects the pubkey on each iteration. See file header.
    */
   async function _fingerprintForParticipant(ikPubEd25519Bytes, userIdStr) {
     const userIdBytes = new TextEncoder().encode(userIdStr);
@@ -76,14 +89,18 @@
     await global.PM_CRYPTO_READY;
     const sodium = global.sodium;
 
+    // Olm emits identity keys as standard base64 without padding
+    // (alphabet +/, not the URL-safe -_ that libsodium-js defaults to),
+    // so we must decode with ORIGINAL_NO_PADDING or ~73% of keys fail.
+    const olmVariant = sodium.base64_variants.ORIGINAL_NO_PADDING;
     let selfIkBytes, peerIkBytes;
     try {
-      selfIkBytes = sodium.from_base64(selfIk);
+      selfIkBytes = sodium.from_base64(selfIk, olmVariant);
     } catch (e) {
       throw new Error('invalid input: self identity key is not valid base64');
     }
     try {
-      peerIkBytes = sodium.from_base64(peerIk);
+      peerIkBytes = sodium.from_base64(peerIk, olmVariant);
     } catch (e) {
       throw new Error('invalid input: peer identity key is not valid base64');
     }
