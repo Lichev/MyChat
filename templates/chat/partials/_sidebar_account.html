@@ -1,0 +1,97 @@
+{% load static %}
+{% comment %}
+Account sidebar — Phase 2 real markup. Replaces Phase 1 stub.
+Renders inside .chat-sidebar when active_tab == "account".
+Reuses .profile-nav* classes from profile-ui.css — no new CSS needed.
+{% endcomment %}
+
+{% with url_name=request.resolver_match.url_name %}
+
+<nav class="profile-nav" aria-label="Account navigation">
+
+  {# ── My profile ───────────────────────────────────────────── #}
+  <a href="{% url 'profile' request.user.pk %}"
+     class="profile-nav__item{% if url_name == 'profile' %} active{% endif %}">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M1.5 12.5C1.5 10 4 8 7 8s5.5 2 5.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    My profile
+  </a>
+
+  {# ── Settings section ─────────────────────────────────────── #}
+  <hr class="profile-nav__sep">
+
+  <div style="padding:var(--s-2) var(--s-4) var(--s-1);font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)">Settings</div>
+
+  <a href="{% url 'profile-settings-name' request.user.pk %}"
+     class="profile-nav__item{% if url_name == 'profile-settings-name' %} active{% endif %}">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M2 11h10M4 11V5.5L7 3l3 2.5V11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M5.5 11V8.5h3V11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Name
+  </a>
+
+  <a href="{% url 'profile-settings-avatar' request.user.pk %}"
+     class="profile-nav__item{% if url_name == 'profile-settings-avatar' %} active{% endif %}">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M1.5 12.5C1.5 10 4 8 7 8s5.5 2 5.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    Avatar
+  </a>
+
+  <a href="{% url 'profile-settings-info' request.user.pk %}"
+     class="profile-nav__item{% if url_name == 'profile-settings-info' %} active{% endif %}">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M7 6.5v4M7 4.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    Personal info
+  </a>
+
+  <a href="{% url 'profile-settings-security' request.user.pk %}"
+     class="profile-nav__item{% if url_name == 'profile-settings-security' %} active{% endif %}">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M7 1.5L2 4v4c0 2.5 2.2 4.5 5 5 2.8-.5 5-2.5 5-5V4L7 1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+    </svg>
+    Security
+  </a>
+
+  {# ── Friends section ──────────────────────────────────────── #}
+  <hr class="profile-nav__sep">
+
+  <a href="{% url 'show_friends' %}"
+     class="profile-nav__item{% if url_name == 'show_friends' %} active{% endif %}">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M9.5 3.5a2 2 0 010 2.5M11 8.5c1.1.7 2 2 2 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    Friends
+  </a>
+
+  <a href="{% url 'show_friends_request' %}"
+     class="profile-nav__item{% if url_name == 'show_friends_request' %} active{% endif %}">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M1 12c0-2.2 1.8-4 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M10 7v4M8 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    Pending requests
+  </a>
+
+  {# ── Sign out ─────────────────────────────────────────────── #}
+  <hr class="profile-nav__sep">
+
+  <a href="{% url 'logout' %}" class="profile-nav__item profile-nav__item--danger">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M5.5 2H2.5A1.5 1.5 0 001 3.5v7A1.5 1.5 0 002.5 12h3M9.5 10l3-3-3-3M12.5 7h-7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Sign out
+  </a>
+
+</nav>
+
+{% endwith %}

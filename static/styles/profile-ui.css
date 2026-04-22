@@ -6,7 +6,7 @@
 .profile-shell {
   display: grid;
   grid-template-columns: 240px 1fr;
-  gap: var(--s-6);
+  /* gap removed — .profile-shell is dead code; layout lives in .chat-shell */
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--s-8) var(--s-6);

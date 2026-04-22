@@ -1,8 +1,7 @@
-{% extends 'chat/hub.html' %}
+{% extends 'chat/hub_shell.html' %}
 {% load static %}
 
-{% block right_chat_content %}
-<main class="chat-main" aria-label="Chat room: {{ current_room.name }}">
+{% block main_content %}
 
   <!-- Room topbar -->
   <div class="chat-topbar">
@@ -90,8 +89,9 @@
     </form>
   </div>
 
-</main>
+{% endblock %}
 
+{% block page_js %}
 {{ current_room.name|json_script:"json-roomname" }}
 {{ current_room.pk|json_script:"json-id" }}
 {{ request.user.username|json_script:"json-username" }}

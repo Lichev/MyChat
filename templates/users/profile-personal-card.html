@@ -1,8 +1,10 @@
-{% extends 'users/profile.html' %}
+{% extends 'chat/hub_shell.html' %}
 {% load static %}
 {% load custom_filters %}
 
-{% block right_content %}
+{% block page_title %}My Profile — MyChat{% endblock %}
+
+{% block main_content %}
 
 <!-- Quick stats -->
 <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;margin-bottom:var(--s-4)">

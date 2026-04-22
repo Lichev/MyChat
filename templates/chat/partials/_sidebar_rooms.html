@@ -1,0 +1,38 @@
+{% load custom_filters %}
+<!-- Rooms tab panel — verbatim from hub.html lines 58–93 -->
+<div role="tabpanel" id="panel-rooms" aria-labelledby="tab-rooms" class="sidebar-panel">
+  <ul class="list" id="roomList">
+    <!-- Create room -->
+    <li>
+      <a href="{% url 'create_room' %}" class="room-item-create">
+        <span class="room-item-create__icon" aria-hidden="true">+</span>
+        <span>Create room</span>
+      </a>
+    </li>
+
+    {% for room in public_chat_rooms %}
+    <li>
+      <a href="{% url 'public_chat_messages' room.id %}" class="room-item">
+        <img
+          src="{{ room.room_picture.url }}"
+          alt="{{ room.name }}"
+          class="room-item__img"
+        >
+        <div class="room-item__details">
+          <span class="room-item__name">{{ room.name }}</span>
+          {% with preview=last_messages|default_if_none:""|get_item:room.id %}
+          {% if preview %}
+          <span class="room-item__preview">{{ preview.sender }}: {{ preview.content|truncatechars:28 }}</span>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </a>
+    </li>
+    {% empty %}
+    <li class="empty-state">
+      <p class="empty-state__title">No rooms yet</p>
+      <p class="empty-state__body">Create one to get started</p>
+    </li>
+    {% endfor %}
+  </ul>
+</div>

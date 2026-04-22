@@ -1,8 +1,8 @@
-{% extends 'chat/hub.html' %}
+{% extends 'chat/hub_shell.html' %}
 {% load static %}
 
-{% block right_chat_content %}
-<main class="chat-main" style="align-items:center;justify-content:center;padding:var(--s-8)">
+{% block main_content %}
+<div style="display:flex;align-items:center;justify-content:center;padding:var(--s-8);width:100%;height:100%;overflow-y:auto">
 
   <div style="width:100%;max-width:480px">
     <div class="profile-card">
@@ -68,8 +68,10 @@
     </div>
   </div>
 
-</main>
+</div>
+{% endblock %}
 
+{% block page_js %}
 <script>
 (function() {
   const input   = document.getElementById('{{ form.room_picture.id_for_label }}');

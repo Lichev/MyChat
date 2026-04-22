@@ -1,0 +1,43 @@
+{% comment %}
+Settings sub-nav tab strip — included at the top of main_content
+in each leaf settings template (name / avatar / info / security).
+Active tab driven by request.resolver_match.url_name.
+CSS classes (.settings-tab, .active) defined inline in profile-settings.html
+are extracted here along with the markup.
+{% endcomment %}
+
+{% with url_name=request.resolver_match.url_name %}
+<div style="display:flex;gap:var(--s-1);padding:0 var(--s-6);border-bottom:1px solid var(--border);overflow-x:auto">
+  <a href="{% url 'profile-settings-name' request.user.pk %}"
+     class="settings-tab {% if url_name == 'profile-settings-name' %}active{% endif %}">Name</a>
+  <a href="{% url 'profile-settings-avatar' request.user.pk %}"
+     class="settings-tab {% if url_name == 'profile-settings-avatar' %}active{% endif %}">Avatar</a>
+  <a href="{% url 'profile-settings-security' request.user.pk %}"
+     class="settings-tab {% if url_name == 'profile-settings-security' %}active{% endif %}">Security</a>
+  <a href="{% url 'profile-settings-info' request.user.pk %}"
+     class="settings-tab {% if url_name == 'profile-settings-info' %}active{% endif %}">Personal info</a>
+  <a href="#" class="settings-tab">Interests</a>
+  <a href="#" class="settings-tab">Bio</a>
+</div>
+{% endwith %}
+
+<style>
+.settings-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-3);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  transition: color var(--dur-base), border-color var(--dur-base);
+  white-space: nowrap;
+  margin-bottom: -1px;
+}
+.settings-tab:hover { color: var(--text-1); }
+.settings-tab.active {
+  color: var(--accent-bright);
+  border-bottom-color: var(--accent);
+}
+</style>

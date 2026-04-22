@@ -7,6 +7,7 @@
 .chat-shell {
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
+  column-gap: var(--s-6); /* 1.5rem — breathing room between sidebar and main */
   height: calc(100vh - var(--nav-h));
   overflow: hidden;
 }

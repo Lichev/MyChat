@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}{% block page_title %}MyChat{% endblock %}{% endblock %}
+{% block nav_rooms_active %}{% if active_tab != "account" %}active{% endif %}{% endblock %}
+
+{% block extra_css %}{% block page_css %}{% endblock %}{% endblock %}
+
+{% block content %}
+{% with resolved_tab=active_tab|default:"rooms" %}
+<div class="chat-shell">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────── -->
+  <aside class="chat-sidebar">
+
+    <!-- User identity -->
+    <div class="sidebar-identity">
+      <div class="avatar-ring">
+        <img
+          src="{{ user.profile_picture.url }}"
+          alt="{{ user.username }}"
+          class="avatar avatar--sm"
+        >
+      </div>
+      <div class="sidebar-identity__info">
+        <div class="sidebar-identity__name">{{ user.username }}</div>
+        <div class="sidebar-identity__status">Online</div>
+      </div>
+    </div>
+
+    <!-- Sidebar search — form submits to /chat/search/ on non-hub pages;
+         hub JS intercepts and does XHR when #searchResults is present -->
+    <div class="sidebar-search">
+      <form id="sidebarSearchForm" class="search-bar" role="search"
+            action="{% url 'chat_search' %}" method="get">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input
+          id="searchTerminal"
+          type="text"
+          name="q"
+          placeholder="Search rooms &amp; users…"
+          autocomplete="off"
+          aria-label="Search rooms and users"
+        >
+      </form>
+    </div>
+
+    <!-- Shell-level tab header: Rooms / Users / Account
+         Rendering branches on active_tab per F9 logic in the plan:
+         - rooms/users mode: Rooms + Users are <button> (client-side swap); Account is <a>
+         - account mode: Rooms + Users are <a> (full navigation); Account is <button> (current indicator) -->
+    <div class="sidebar-tabs" role="tablist" aria-label="Shell navigation">
+
+      {% if resolved_tab == "account" %}
+        {# Account mode: Rooms/Users navigate away; Account is the current-mode indicator #}
+        <a href="{% url 'public_chat_room' %}"
+           role="tab"
+           id="tab-rooms"
+           aria-selected="false"
+           class="sidebar-tab">Rooms</a>
+        <a href="{% url 'public_chat_room' %}?view=users"
+           role="tab"
+           id="tab-users"
+           aria-selected="false"
+           class="sidebar-tab">Users</a>
+        <button role="tab"
+                id="tab-account"
+                aria-selected="true"
+                aria-controls="panel-account"
+                tabindex="0"
+                class="sidebar-tab sidebar-tab--active">Account</button>
+      {% else %}
+        {# Rooms/Users mode: tab buttons drive client-side panel swap; Account navigates #}
+        <button role="tab"
+                id="tab-rooms"
+                aria-selected="{% if resolved_tab == 'rooms' %}true{% else %}false{% endif %}"
+                aria-controls="panel-rooms"
+                tabindex="{% if resolved_tab == 'rooms' %}0{% else %}-1{% endif %}"
+                class="sidebar-tab{% if resolved_tab == 'rooms' %} sidebar-tab--active{% endif %}">Rooms</button>
+        <button role="tab"
+                id="tab-users"
+                aria-selected="{% if resolved_tab == 'users' %}true{% else %}false{% endif %}"
+                aria-controls="panel-users"
+                tabindex="{% if resolved_tab == 'users' %}0{% else %}-1{% endif %}"
+                class="sidebar-tab{% if resolved_tab == 'users' %} sidebar-tab--active{% endif %}">Users</button>
+        <a href="{% url 'profile' request.user.pk %}"
+           role="tab"
+           id="tab-account"
+           aria-selected="false"
+           class="sidebar-tab">Account</a>
+      {% endif %}
+
+    </div>
+
+    <!-- Sidebar panel content: account sidebar OR rooms+users panels -->
+    {% if resolved_tab == "account" %}
+      {% include "chat/partials/_sidebar_account.html" %}
+    {% else %}
+      {% include "chat/partials/_sidebar_rooms.html" %}
+      {% include "chat/partials/_sidebar_users.html" %}
+    {% endif %}
+
+  </aside>
+
+  <!-- ── MAIN CONTENT ───────────────────────────────────────────── -->
+  <main class="chat-main" aria-label="Main content">
+    {% block main_content %}{% endblock %}
+  </main>
+
+</div>
+{% endwith %}
+
+<!-- ── SHELL-LEVEL JS ──────────────────────────────────────────────
+     Runs on every shell page. Handles:
+     1. Tab switcher + keyboard navigation (Rooms/Users panel swap)
+     2. chat_info_json fetch → populate #userList (guarded: only when it exists)
+     3. appendFriendToSidebar (called by hub.html dashboard JS after accept)
+     4. ?view=users auto-activation on page load
+     ─────────────────────────────────────────────────────────────── -->
+<script>
+(function() {
+  'use strict';
+
+  var CSRF = '{{ csrf_token }}';
+
+  /* ── Tab switcher: only active in rooms/users mode (both panels present) ── */
+  var tabList = document.querySelector('[role="tablist"]');
+  /* Collect only <button role="tab"> — the Account <a> in rooms/users mode
+     is excluded from the keyboard-nav roving tabindex because it's a link,
+     not a panel trigger. */
+  var tabs    = tabList
+    ? Array.prototype.slice.call(tabList.querySelectorAll('button[role="tab"]'))
+    : [];
+  var panels  = tabs.map(function(t) {
+    var id = t.getAttribute('aria-controls');
+    return id ? document.getElementById(id) : null;
+  });
+
+  function activateTab(index) {
+    tabs.forEach(function(t, i) {
+      var isActive = i === index;
+      t.setAttribute('aria-selected', String(isActive));
+      t.setAttribute('tabindex', isActive ? '0' : '-1');
+      t.classList.toggle('sidebar-tab--active', isActive);
+      if (panels[i]) {
+        panels[i].hidden = !isActive;
+        if (isActive) panels[i].scrollTop = 0;
+      }
+    });
+  }
+
+  /* Wire click on each button tab */
+  tabs.forEach(function(tab, index) {
+    tab.addEventListener('click', function() { activateTab(index); });
+  });
+
+  /* Keyboard nav (arrow keys, Home, End) — roving tabindex within button tabs */
+  if (tabList && tabs.length > 0) {
+    tabList.addEventListener('keydown', function(e) {
+      var current = tabs.indexOf(document.activeElement);
+      if (current === -1) return;
+      var next = current;
+      if (e.key === 'ArrowRight')      { next = (current + 1) % tabs.length; }
+      else if (e.key === 'ArrowLeft')  { next = (current - 1 + tabs.length) % tabs.length; }
+      else if (e.key === 'Home')       { next = 0; }
+      else if (e.key === 'End')        { next = tabs.length - 1; }
+      else                             { return; }
+      e.preventDefault();
+      activateTab(next);
+      tabs[next].focus();
+    });
+  }
+
+  /* ── ?view=users auto-activation on load ── */
+  /* If the server set active_tab="users" (via ?view=users), activate the
+     Users tab visually. The server already sets aria-selected on the markup,
+     but we still need the JS panel state to match. */
+  var serverActiveTab = '{{ active_tab|default:"rooms" }}';
+  if (serverActiveTab === 'users') {
+    var usersTabIndex = tabs.findIndex
+      ? tabs.findIndex(function(t) { return t.id === 'tab-users'; })
+      : (function() {
+          for (var i = 0; i < tabs.length; i++) {
+            if (tabs[i].id === 'tab-users') return i;
+          }
+          return -1;
+        })();
+    if (usersTabIndex !== -1) {
+      activateTab(usersTabIndex);
+    }
+  }
+
+  /* ── appendFriendToSidebar — called by hub.html dashboard JS after a
+     friend-request accept. Guarded: #userList only exists in rooms/users mode. ── */
+  window.appendFriendToSidebar = function(friend) {
+    var userList = document.getElementById('userList');
+    if (!userList) return;
+    /* Remove skeleton/empty-state on first real entry */
+    var skeleton = document.getElementById('userListSkeleton');
+    if (skeleton) skeleton.remove();
+    var emptyLi = userList.querySelector('.empty-state');
+    if (emptyLi) emptyLi.remove();
+
+    var profileUrl = '{% url "public-profile" "USERNAME" %}'.replace('USERNAME', encodeURIComponent(friend.username));
+    var li = document.createElement('li');
+    var a = document.createElement('a');
+    a.href = profileUrl;
+    a.className = 'user-row';
+
+    var img = document.createElement('img');
+    img.src = friend.avatar || '';
+    img.alt = friend.username;
+    img.className = 'user-row__avatar';
+
+    var info = document.createElement('div');
+    info.className = 'user-row__info';
+
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'user-row__name';
+    nameSpan.textContent = friend.username;
+
+    var previewSpan = document.createElement('span');
+    previewSpan.className = 'user-row__preview';
+    previewSpan.textContent = friend.last_dm_preview ? friend.last_dm_preview : '';
+
+    info.appendChild(nameSpan);
+    info.appendChild(previewSpan);
+    a.appendChild(img);
+    a.appendChild(info);
+    li.appendChild(a);
+    userList.appendChild(li);
+  };
+
+  /* ── chat_info_json fetch → hydrate #userList (sidebar Users panel)
+     Guarded: only run when #userList is in the DOM. On account-mode pages
+     the Users partial isn't rendered so we skip entirely. ── */
+  var userList = document.getElementById('userList');
+  if (userList) {
+    window.addEventListener('DOMContentLoaded', function() {
+      fetch('{% url "chat_info" %}', { headers: { 'X-CSRFToken': CSRF } })
+        .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data) {
+          /* Clear skeleton */
+          var skeleton = document.getElementById('userListSkeleton');
+          if (skeleton) skeleton.remove();
+
+          if (data.friends && data.friends.length > 0) {
+            data.friends.forEach(function(friend) {
+              window.appendFriendToSidebar(friend);
+            });
+          } else {
+            /* Re-fetch userList ref in case DOM updated */
+            var ul = document.getElementById('userList');
+            if (ul) {
+              var li = document.createElement('li');
+              li.className = 'empty-state';
+              li.textContent = 'No friends yet — search for users to add them';
+              ul.appendChild(li);
+            }
+          }
+        })
+        .catch(function(err) { console.error('Shell chat_info fetch error:', err); });
+    });
+  }
+
+})();
+</script>
+
+{% block page_js %}{% endblock %}
+{% endblock %}

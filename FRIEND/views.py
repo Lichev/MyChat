@@ -157,7 +157,8 @@ def show_friends_view(request, ):
 
     context = {
         'page_obj': page_obj,
-        'query': query
+        'query': query,
+        'active_tab': 'account',
     }
 
     return render(request, 'friend/friends_list.html', context)
@@ -185,7 +186,8 @@ def show_friends_request(request):
 
     context = {
         'page_obj': page_obj,
-        'query': query
+        'query': query,
+        'active_tab': 'account',
     }
 
     return render(request, 'friend/friends_requests.html', context)

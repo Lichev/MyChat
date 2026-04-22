@@ -1,56 +1,67 @@
-{% extends 'users/profile-settings.html' %}
+{% extends 'chat/hub_shell.html' %}
 {% load static %}
 {% load custom_filters %}
 
-{% block tab_info %}active{% endblock %}
+{% block page_title %}Personal Info — Settings — MyChat{% endblock %}
 
-{% block settings_content %}
-<div style="max-width:500px">
-  <form method="post" class="settings-form" novalidate>
-    {% csrf_token %}
+{% block main_content %}
+<div class="profile-card">
+  <div class="profile-card__header">
+    <h2 class="profile-card__title">Settings</h2>
+    <p class="profile-card__subtitle">Manage your account details</p>
+  </div>
 
-    <div class="user-box">
-      <label for="{{ form.gender.id_for_label }}">Gender</label>
-      {{ form.gender }}
+  {% include "users/partials/_settings_tabs.html" %}
+
+  <div class="profile-card__body">
+    <div style="max-width:500px">
+      <form method="post" class="settings-form" novalidate>
+        {% csrf_token %}
+
+        <div class="user-box">
+          <label for="{{ form.gender.id_for_label }}">Gender</label>
+          {{ form.gender }}
+        </div>
+
+        <div class="user-box">
+          <label for="{{ form.date_of_birth.id_for_label }}">Date of birth</label>
+          {{ form.date_of_birth|input_value:request.user.date_of_birth|type_value:'date' }}
+          {% if form.date_of_birth.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.date_of_birth.errors }}</div>
+          {% endif %}
+        </div>
+
+        <div class="user-box">
+          <label for="{{ form.phone_number.id_for_label }}">Phone number</label>
+          {{ form.phone_number|input_value:request.user.phone_number }}
+          {% if form.phone_number.errors %}
+            <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.phone_number.errors }}</div>
+          {% endif %}
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4)">
+          <div class="user-box">
+            <label for="{{ form.city.id_for_label }}">City</label>
+            {{ form.city|input_value:request.user.city }}
+            {% if form.city.errors %}
+              <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.city.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="user-box">
+            <label for="{{ form.country.id_for_label }}">Country</label>
+            {{ form.country|input_value:request.user.country }}
+            {% if form.country.errors %}
+              <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.country.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="settings-form-actions">
+          <button type="submit" class="btn btn-primary">Save changes</button>
+        </div>
+      </form>
     </div>
-
-    <div class="user-box">
-      <label for="{{ form.date_of_birth.id_for_label }}">Date of birth</label>
-      {{ form.date_of_birth|input_value:request.user.date_of_birth|type_value:'date' }}
-      {% if form.date_of_birth.errors %}
-        <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.date_of_birth.errors }}</div>
-      {% endif %}
-    </div>
-
-    <div class="user-box">
-      <label for="{{ form.phone_number.id_for_label }}">Phone number</label>
-      {{ form.phone_number|input_value:request.user.phone_number }}
-      {% if form.phone_number.errors %}
-        <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.phone_number.errors }}</div>
-      {% endif %}
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4)">
-      <div class="user-box">
-        <label for="{{ form.city.id_for_label }}">City</label>
-        {{ form.city|input_value:request.user.city }}
-        {% if form.city.errors %}
-          <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.city.errors }}</div>
-        {% endif %}
-      </div>
-
-      <div class="user-box">
-        <label for="{{ form.country.id_for_label }}">Country</label>
-        {{ form.country|input_value:request.user.country }}
-        {% if form.country.errors %}
-          <div style="font-size:var(--font-size-xs);color:var(--error)">{{ form.country.errors }}</div>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="settings-form-actions">
-      <button type="submit" class="btn btn-primary">Save changes</button>
-    </div>
-  </form>
+  </div>
 </div>
 {% endblock %}

@@ -8,6 +8,7 @@ from django.views import generic as views
 from CHAT_ROOMS.models import PublicChatRoom
 from CHAT_ROOMS.services import get_public_chat_rooms, get_last_messages_preview
 from FRIEND.models import Friend, FriendshipRequest
+from CHAT.mixins import HubShellMixin
 
 UserModel = get_user_model()
 
@@ -66,14 +67,17 @@ def _build_search_data(request, query):
     return rooms_data, users_data
 
 
-class ChatHubView(LoginRequiredMixin, views.TemplateView):
+class ChatHubView(HubShellMixin, LoginRequiredMixin, views.TemplateView):
     template_name = 'chat/hub.html'
+    active_tab = "rooms"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         rooms = get_public_chat_rooms()
         context['public_chat_rooms'] = rooms
         context['last_messages'] = get_last_messages_preview(rooms)
+        if self.request.GET.get("view") == "users":
+            context["active_tab"] = "users"
         return context
 
 

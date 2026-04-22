@@ -1,91 +1,102 @@
-{% extends 'users/profile-settings.html' %}
+{% extends 'chat/hub_shell.html' %}
 {% load static %}
 
-{% block tab_security %}active{% endblock %}
+{% block page_title %}Security — Settings — MyChat{% endblock %}
 
-{% block settings_content %}
-<div style="max-width:480px;display:flex;flex-direction:column;gap:var(--s-8)">
+{% block main_content %}
+<div class="profile-card">
+  <div class="profile-card__header">
+    <h2 class="profile-card__title">Settings</h2>
+    <p class="profile-card__subtitle">Manage your account details</p>
+  </div>
 
-  <!-- ── Recovery key section ─────────────────────────────────────── -->
-  <section>
-    <h3 style="font-size:var(--font-size-base);font-weight:600;color:var(--text-1);margin-bottom:var(--s-2)">Recovery key</h3>
-    <p style="font-size:var(--font-size-sm);color:var(--text-2);line-height:1.6;margin-bottom:var(--s-4)">
-      Your recovery key is the only way to reset your password if you are locked out.
-      Rotating the key immediately invalidates the old one — save the new key before closing the page.
-    </p>
+  {% include "users/partials/_settings_tabs.html" %}
 
-    {% if has_key %}
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-4);font-size:var(--font-size-sm);color:var(--online)">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      Recovery key is active
+  <div class="profile-card__body">
+    <div style="max-width:480px;display:flex;flex-direction:column;gap:var(--s-8)">
+
+      <!-- ── Recovery key section ─────────────────────────────────────── -->
+      <section>
+        <h3 style="font-size:var(--font-size-base);font-weight:600;color:var(--text-1);margin-bottom:var(--s-2)">Recovery key</h3>
+        <p style="font-size:var(--font-size-sm);color:var(--text-2);line-height:1.6;margin-bottom:var(--s-4)">
+          Your recovery key is the only way to reset your password if you are locked out.
+          Rotating the key immediately invalidates the old one — save the new key before closing the page.
+        </p>
+
+        {% if has_key %}
+        <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-4);font-size:var(--font-size-sm);color:var(--online)">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Recovery key is active
+        </div>
+        {% else %}
+        <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-4);font-size:var(--font-size-sm);color:var(--error)">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M7 2v5m0 2.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.3"/>
+          </svg>
+          No recovery key set — you cannot reset your password if locked out
+        </div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="rotate_key">
+          <button
+            type="submit"
+            class="btn btn-secondary"
+            onclick="return confirm('Generate a new recovery key? Your current key will be permanently invalidated.')"
+          >
+            {% if has_key %}Rotate recovery key{% else %}Generate recovery key{% endif %}
+          </button>
+        </form>
+      </section>
+
+      <hr style="border:none;border-top:1px solid var(--border)">
+
+      <!-- ── Change password section ──────────────────────────────────── -->
+      <section>
+        <h3 style="font-size:var(--font-size-base);font-weight:600;color:var(--text-1);margin-bottom:var(--s-2)">Change password</h3>
+        <p style="font-size:var(--font-size-sm);color:var(--text-2);line-height:1.6;margin-bottom:var(--s-4)">
+          Enter your current password to set a new one.
+        </p>
+
+        {% if pw_error %}
+        <div style="font-size:var(--font-size-sm);color:var(--error);margin-bottom:var(--s-3)">{{ pw_error }}</div>
+        {% endif %}
+        {% if pw_errors %}
+        <ul style="font-size:var(--font-size-sm);color:var(--error);margin-bottom:var(--s-3);padding-left:var(--s-4)">
+          {% for e in pw_errors %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="post" class="settings-form" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="action" value="change_password">
+
+          <div class="user-box">
+            <label for="old_password">Current password</label>
+            <input type="password" id="old_password" name="old_password" autocomplete="current-password" required>
+          </div>
+
+          <div class="user-box">
+            <label for="new_password1">New password</label>
+            <input type="password" id="new_password1" name="new_password1" autocomplete="new-password" required>
+          </div>
+
+          <div class="user-box">
+            <label for="new_password2">Confirm new password</label>
+            <input type="password" id="new_password2" name="new_password2" autocomplete="new-password" required>
+          </div>
+
+          <div class="settings-form-actions">
+            <button type="submit" class="btn btn-primary">Update password</button>
+          </div>
+        </form>
+      </section>
+
     </div>
-    {% else %}
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-4);font-size:var(--font-size-sm);color:var(--error)">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <path d="M7 2v5m0 2.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.3"/>
-      </svg>
-      No recovery key set — you cannot reset your password if locked out
-    </div>
-    {% endif %}
-
-    <form method="post">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="rotate_key">
-      <button
-        type="submit"
-        class="btn btn-secondary"
-        onclick="return confirm('Generate a new recovery key? Your current key will be permanently invalidated.')"
-      >
-        {% if has_key %}Rotate recovery key{% else %}Generate recovery key{% endif %}
-      </button>
-    </form>
-  </section>
-
-  <hr style="border:none;border-top:1px solid var(--border)">
-
-  <!-- ── Change password section ──────────────────────────────────── -->
-  <section>
-    <h3 style="font-size:var(--font-size-base);font-weight:600;color:var(--text-1);margin-bottom:var(--s-2)">Change password</h3>
-    <p style="font-size:var(--font-size-sm);color:var(--text-2);line-height:1.6;margin-bottom:var(--s-4)">
-      Enter your current password to set a new one.
-    </p>
-
-    {% if pw_error %}
-    <div style="font-size:var(--font-size-sm);color:var(--error);margin-bottom:var(--s-3)">{{ pw_error }}</div>
-    {% endif %}
-    {% if pw_errors %}
-    <ul style="font-size:var(--font-size-sm);color:var(--error);margin-bottom:var(--s-3);padding-left:var(--s-4)">
-      {% for e in pw_errors %}<li>{{ e }}</li>{% endfor %}
-    </ul>
-    {% endif %}
-
-    <form method="post" class="settings-form" novalidate>
-      {% csrf_token %}
-      <input type="hidden" name="action" value="change_password">
-
-      <div class="user-box">
-        <label for="old_password">Current password</label>
-        <input type="password" id="old_password" name="old_password" autocomplete="current-password" required>
-      </div>
-
-      <div class="user-box">
-        <label for="new_password1">New password</label>
-        <input type="password" id="new_password1" name="new_password1" autocomplete="new-password" required>
-      </div>
-
-      <div class="user-box">
-        <label for="new_password2">Confirm new password</label>
-        <input type="password" id="new_password2" name="new_password2" autocomplete="new-password" required>
-      </div>
-
-      <div class="settings-form-actions">
-        <button type="submit" class="btn btn-primary">Update password</button>
-      </div>
-    </form>
-  </section>
-
+  </div>
 </div>
 {% endblock %}

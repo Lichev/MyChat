@@ -1,123 +1,121 @@
-{% extends 'base.html' %}
+{% extends 'chat/hub_shell.html' %}
 {% load static %}
 {% load custom_filters %}
 
-{% block title %}{{ object.username }} — MyChat{% endblock %}
+{% block page_title %}{{ object.username }} — MyChat{% endblock %}
 
-{% block content %}
-<div style="max-width:700px;margin:0 auto;padding:var(--s-8) var(--s-6)">
+{% block main_content %}
 
-  <div class="profile-card" style="margin-bottom:var(--s-6)">
+<div class="profile-card">
 
-    <!-- Header -->
-    <div class="profile-card__header">
-      <div style="display:flex;align-items:center;gap:var(--s-5)">
-        <div class="avatar-ring">
-          <img
-            src="{{ object.profile_picture.url }}"
-            alt="{{ object.full_name }}"
-            class="avatar avatar--xl"
-            width="96" height="96"
-          >
-        </div>
-        <div style="min-width:0">
-          <h1 style="font-size:var(--font-size-2xl);font-weight:700;color:var(--text-1)">{{ object.full_name }}</h1>
-          <p style="font-size:var(--font-size-sm);color:var(--text-3);font-family:var(--font-mono)">@{{ object.username }}</p>
-        </div>
+  <!-- Header -->
+  <div class="profile-card__header">
+    <div style="display:flex;align-items:center;gap:var(--s-5)">
+      <div class="avatar-ring">
+        <img
+          src="{{ object.profile_picture.url }}"
+          alt="{{ object.full_name }}"
+          class="avatar avatar--xl"
+          width="96" height="96"
+        >
+      </div>
+      <div style="min-width:0">
+        <h1 style="font-size:var(--font-size-2xl);font-weight:700;color:var(--text-1)">{{ object.full_name }}</h1>
+        <p style="font-size:var(--font-size-sm);color:var(--text-3);font-family:var(--font-mono)">@{{ object.username }}</p>
       </div>
     </div>
+  </div>
 
-    <!-- Action row -->
-    <div style="padding:var(--s-5) var(--s-8);border-bottom:1px solid var(--border);display:flex;gap:var(--s-3);flex-wrap:wrap;align-items:center">
+  <!-- Action row -->
+  <div style="padding:var(--s-5) var(--s-8);border-bottom:1px solid var(--border);display:flex;gap:var(--s-3);flex-wrap:wrap;align-items:center">
 
-      {% if not is_self and not is_friend %}
-        {% if has_sent_request %}
-          <form method="post" action="{% url 'friendship_cancel' request_id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-ghost btn-sm">Cancel request</button>
-          </form>
-        {% elif has_received_request %}
-          <form method="post" action="{% url 'friendship_accept' request_id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary btn-sm">Accept request</button>
-          </form>
-          <form method="post" action="{% url 'friendship_reject' request_id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-ghost btn-sm">Reject</button>
-          </form>
-        {% else %}
-          <form method="post" action="{% url 'friendship_add_friend' to_username.username %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary btn-sm">Add friend</button>
-          </form>
-        {% endif %}
-
-      {% elif not is_self and is_friend %}
-        <a href="#" class="btn btn-secondary btn-sm">Message</a>
-        <form method="post" action="{% url 'remove_friend' to_username.id %}">
+    {% if not is_self and not is_friend %}
+      {% if has_sent_request %}
+        <form method="post" action="{% url 'friendship_cancel' request_id %}">
           {% csrf_token %}
-          <button type="submit" class="btn btn-danger btn-sm">Remove friend</button>
+          <button type="submit" class="btn btn-ghost btn-sm">Cancel request</button>
+        </form>
+      {% elif has_received_request %}
+        <form method="post" action="{% url 'friendship_accept' request_id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-sm">Accept request</button>
+        </form>
+        <form method="post" action="{% url 'friendship_reject' request_id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm">Reject</button>
+        </form>
+      {% else %}
+        <form method="post" action="{% url 'friendship_add_friend' to_username.username %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-sm">Add friend</button>
         </form>
       {% endif %}
 
-      <span class="badge badge-accent" style="margin-left:auto">{{ friends_len }} friend{{ friends_len|pluralize }}</span>
+    {% elif not is_self and is_friend %}
+      <a href="#" class="btn btn-secondary btn-sm">Message</a>
+      <form method="post" action="{% url 'remove_friend' to_username.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm">Remove friend</button>
+      </form>
+    {% endif %}
 
-      {% if is_self %}
-        <a href="{% url 'profile-settings' request.user.pk %}" class="btn btn-secondary btn-sm">Edit profile</a>
+    <span class="badge badge-accent" style="margin-left:auto">{{ friends_len }} friend{{ friends_len|pluralize }}</span>
+
+    {% if is_self %}
+      <a href="{% url 'profile-settings' request.user.pk %}" class="btn btn-secondary btn-sm">Edit profile</a>
+    {% endif %}
+  </div>
+
+  <!-- Info -->
+  <div class="profile-card__body">
+    <dl style="display:flex;flex-direction:column;gap:var(--s-4)">
+
+      {% if object.phone_number %}
+      <div style="display:flex;gap:var(--s-4);align-items:baseline">
+        <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Phone</dt>
+        <dd style="color:var(--text-1);font-size:var(--font-size-sm)">{{ object.phone_number }}</dd>
+      </div>
       {% endif %}
-    </div>
 
-    <!-- Info -->
-    <div class="profile-card__body">
-      <dl style="display:flex;flex-direction:column;gap:var(--s-4)">
-
-        {% if object.phone_number %}
-        <div style="display:flex;gap:var(--s-4);align-items:baseline">
-          <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Phone</dt>
-          <dd style="color:var(--text-1);font-size:var(--font-size-sm)">{{ object.phone_number }}</dd>
-        </div>
-        {% endif %}
-
-        {% if object.gender %}
-        <div style="display:flex;gap:var(--s-4);align-items:baseline">
-          <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Gender</dt>
-          <dd style="color:var(--text-1);font-size:var(--font-size-sm)">{{ object.gender }}</dd>
-        </div>
-        {% endif %}
-
-        {% if object.date_of_birth %}
-        <div style="display:flex;gap:var(--s-4);align-items:baseline">
-          <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Date of birth</dt>
-          <dd style="color:var(--text-1);font-size:var(--font-size-sm)">{{ object.date_of_birth }}</dd>
-        </div>
-        {% endif %}
-
-        {% if object.city or object.country %}
-        <div style="display:flex;gap:var(--s-4);align-items:baseline">
-          <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Location</dt>
-          <dd style="color:var(--text-1);font-size:var(--font-size-sm)">
-            {% if object.city %}{{ object.city }}{% if object.country %}, {% endif %}{% endif %}{{ object.country }}
-          </dd>
-        </div>
-        {% endif %}
-
-        <div style="display:flex;gap:var(--s-4);align-items:baseline">
-          <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Joined</dt>
-          <dd style="color:var(--text-2);font-size:var(--font-size-sm)">{{ object.date_joined }}</dd>
-        </div>
-        <div style="display:flex;gap:var(--s-4);align-items:baseline">
-          <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Last seen</dt>
-          <dd style="color:var(--text-2);font-size:var(--font-size-sm)">{{ object.last_login }}</dd>
-        </div>
-      </dl>
-
-      {% if object.bio %}
-      <hr class="divider" style="margin:var(--s-6) 0">
-      <p style="color:var(--text-2);font-size:var(--font-size-sm);line-height:1.7">{{ object.bio }}</p>
+      {% if object.gender %}
+      <div style="display:flex;gap:var(--s-4);align-items:baseline">
+        <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Gender</dt>
+        <dd style="color:var(--text-1);font-size:var(--font-size-sm)">{{ object.gender }}</dd>
+      </div>
       {% endif %}
-    </div>
 
+      {% if object.date_of_birth %}
+      <div style="display:flex;gap:var(--s-4);align-items:baseline">
+        <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Date of birth</dt>
+        <dd style="color:var(--text-1);font-size:var(--font-size-sm)">{{ object.date_of_birth }}</dd>
+      </div>
+      {% endif %}
+
+      {% if object.city or object.country %}
+      <div style="display:flex;gap:var(--s-4);align-items:baseline">
+        <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Location</dt>
+        <dd style="color:var(--text-1);font-size:var(--font-size-sm)">
+          {% if object.city %}{{ object.city }}{% if object.country %}, {% endif %}{% endif %}{{ object.country }}
+        </dd>
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:var(--s-4);align-items:baseline">
+        <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Joined</dt>
+        <dd style="color:var(--text-2);font-size:var(--font-size-sm)">{{ object.date_joined }}</dd>
+      </div>
+      <div style="display:flex;gap:var(--s-4);align-items:baseline">
+        <dt style="font-size:var(--font-size-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);min-width:120px">Last seen</dt>
+        <dd style="color:var(--text-2);font-size:var(--font-size-sm)">{{ object.last_login }}</dd>
+      </div>
+    </dl>
+
+    {% if object.bio %}
+    <hr class="divider" style="margin:var(--s-6) 0">
+    <p style="color:var(--text-2);font-size:var(--font-size-sm);line-height:1.7">{{ object.bio }}</p>
+    {% endif %}
   </div>
 
 </div>
+
 {% endblock %}

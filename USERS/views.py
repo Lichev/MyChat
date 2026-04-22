@@ -21,6 +21,7 @@ from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from CHAT.mixins import HubShellMixin
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
@@ -167,9 +168,10 @@ class LoginView(auth_views.LoginView):
         return super().form_valid(form)
 
 
-class DetailUserView(LoginRequiredMixin, UserPassesTestMixin, views.DetailView):
+class DetailUserView(HubShellMixin, LoginRequiredMixin, UserPassesTestMixin, views.DetailView):
     model = UserModel
     template_name = 'users/profile-personal-card.html'
+    active_tab = "account"
 
     def test_func(self):
         # This method is used by UserPassesTestMixin to check if the user passes the test
@@ -187,9 +189,10 @@ class DetailUserView(LoginRequiredMixin, UserPassesTestMixin, views.DetailView):
         return context
 
 
-class PublicUserView(LoginRequiredMixin, views.DetailView):
+class PublicUserView(HubShellMixin, LoginRequiredMixin, views.DetailView):
     model = UserModel
     template_name = 'users/profile-public-card.html'
+    active_tab = "account"
 
     def get_object(self):
         username = self.kwargs.get('username')
@@ -205,17 +208,19 @@ class PublicUserView(LoginRequiredMixin, views.DetailView):
         return context
 
 
-class ProfileSettingsView(LoginRequiredMixin, UserPassesTestMixin, views.DetailView):
+class ProfileSettingsView(HubShellMixin, LoginRequiredMixin, UserPassesTestMixin, views.DetailView):
     template_name = 'users/profile-settings.html'
+    active_tab = "account"
     model = UserModel
 
     def test_func(self):
         return self.request.user == self.get_object()
 
 
-class ProfileSettingsName(LoginRequiredMixin, UserPassesTestMixin, views.UpdateView):
+class ProfileSettingsName(HubShellMixin, LoginRequiredMixin, UserPassesTestMixin, views.UpdateView):
     model = UserModel
     template_name = 'users/profile-settings-name.html'
+    active_tab = "account"
     form_class = ProfileSettingsNameForm
 
     def test_func(self):
@@ -226,9 +231,10 @@ class ProfileSettingsName(LoginRequiredMixin, UserPassesTestMixin, views.UpdateV
         return reverse('profile-settings-name', args=[user_pk])
 
 
-class ProfileSettingsAvatar(LoginRequiredMixin, UserPassesTestMixin, views.UpdateView):
+class ProfileSettingsAvatar(HubShellMixin, LoginRequiredMixin, UserPassesTestMixin, views.UpdateView):
     model = UserModel
     template_name = 'users/profile-settings-avatar.html'
+    active_tab = "account"
     form_class = ProfileSettingsAvatarForm
 
     def test_func(self):
@@ -239,9 +245,10 @@ class ProfileSettingsAvatar(LoginRequiredMixin, UserPassesTestMixin, views.Updat
         return reverse('profile-settings-avatar', args=[user_pk])
 
 
-class ProfileSettingsInfo(LoginRequiredMixin, UserPassesTestMixin, views.UpdateView):
+class ProfileSettingsInfo(HubShellMixin, LoginRequiredMixin, UserPassesTestMixin, views.UpdateView):
     model = UserModel
     template_name = 'users/profile-settings-info.html'
+    active_tab = "account"
 
     fields = [
         'gender',
@@ -261,8 +268,9 @@ class ProfileSettingsInfo(LoginRequiredMixin, UserPassesTestMixin, views.UpdateV
 
 @method_decorator(sensitive_post_parameters('new_password1', 'new_password2'), name='dispatch')
 @method_decorator(sensitive_variables('raw_key'), name='dispatch')
-class ProfileSettingsSecurityView(LoginRequiredMixin, views.View):
+class ProfileSettingsSecurityView(HubShellMixin, LoginRequiredMixin, views.View):
     template_name = 'users/profile-settings-security.html'
+    active_tab = "account"
 
     def _get_user(self):
         return self.request.user
@@ -275,6 +283,7 @@ class ProfileSettingsSecurityView(LoginRequiredMixin, views.View):
         return render(request, self.template_name, {
             'object': user,
             'has_key': bool(user.recovery_key_hash),
+            'active_tab': 'account',
         })
 
     def post(self, request, pk):
@@ -309,12 +318,14 @@ class ProfileSettingsSecurityView(LoginRequiredMixin, views.View):
                     'object': user,
                     'has_key': bool(user.recovery_key_hash),
                     'pw_error': 'Current password is incorrect.',
+                    'active_tab': 'account',
                 })
             if new_password1 != new_password2:
                 return render(request, self.template_name, {
                     'object': user,
                     'has_key': bool(user.recovery_key_hash),
                     'pw_error': 'The two passwords do not match.',
+                    'active_tab': 'account',
                 })
             try:
                 validate_password(new_password1, user)
@@ -323,6 +334,7 @@ class ProfileSettingsSecurityView(LoginRequiredMixin, views.View):
                     'object': user,
                     'has_key': bool(user.recovery_key_hash),
                     'pw_errors': e.messages,
+                    'active_tab': 'account',
                 })
             user.set_password(new_password1)
             user.save(update_fields=['password'])

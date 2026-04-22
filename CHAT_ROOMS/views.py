@@ -2,6 +2,7 @@ from django.urls import reverse_lazy
 from django.views import generic as views
 from .models import PublicChatRoom, Message
 from django.contrib.auth.mixins import LoginRequiredMixin
+from CHAT.mixins import HubShellMixin
 from django.shortcuts import redirect
 from .forms import PublicChatRoomForm
 from django.db.models import Q
@@ -19,7 +20,8 @@ UserModel = get_user_model()
 PAGE_SIZE = 25
 
 
-class PublicChatRoomMessages(LoginRequiredMixin, views.ListView):
+class PublicChatRoomMessages(HubShellMixin, LoginRequiredMixin, views.ListView):
+    active_tab = "rooms"
     model = Message
     template_name = 'chat_rooms/public_chat_messages.html'
     context_object_name = 'chat_messages'
@@ -67,7 +69,8 @@ class PublicChatRoomMessages(LoginRequiredMixin, views.ListView):
         return context
 
 
-class PublicChatRoomCreateView(LoginRequiredMixin, views.CreateView):
+class PublicChatRoomCreateView(HubShellMixin, LoginRequiredMixin, views.CreateView):
+    active_tab = "rooms"
     model = PublicChatRoom
     form_class = PublicChatRoomForm
     template_name = 'chat_rooms/create_room.html'
@@ -85,7 +88,8 @@ class PublicChatRoomCreateView(LoginRequiredMixin, views.CreateView):
         return context
 
 
-class PublicChatRoomEditView(LoginRequiredMixin, views.UpdateView):
+class PublicChatRoomEditView(HubShellMixin, LoginRequiredMixin, views.UpdateView):
+    active_tab = "rooms"
     model = PublicChatRoom
     form_class = PublicChatRoomForm
     template_name = 'chat_rooms/edit_room.html'
